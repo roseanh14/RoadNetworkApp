@@ -8,7 +8,7 @@ import java.awt.*;
 public class MainFrame extends JFrame {
 
     public MainFrame(Graph graph) {
-        setTitle("SemA - Alternative Route Planning");
+        setTitle("Alternative Route Planning");
         setSize(1200, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());

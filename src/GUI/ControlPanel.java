@@ -28,7 +28,7 @@ public class ControlPanel extends JPanel {
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(DARK);
-        setPreferredSize(new Dimension(220, 600));
+        setPreferredSize(new Dimension(220, 300));
 
         // Dropdowns with all nodes
         startBox = new JComboBox<>();
