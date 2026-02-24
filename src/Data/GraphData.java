@@ -1,20 +1,23 @@
 package Data;
 
+import Model.Edge;
 import Model.Graph;
 import Model.Node;
 
 public class GraphData {
 
-    public static Graph buildGraph() {
-        Graph graph = new Graph();
+    public static Graph<Node, Edge<Node>> buildGraph() {
+        // Explicit types help Java infer generics correctly
+        Graph<Node, Edge<Node>> graph = new Graph<Node, Edge<Node>>(Edge::new);
+
         addNodes(graph);
         addEdges(graph);
         markProblematicEdges(graph);
+
         return graph;
     }
 
-    private static void addNodes(Graph graph) {
-        // Each node has a name + x,y coordinates for drawing on screen
+    private static void addNodes(Graph<Node, Edge<Node>> graph) {
         graph.addNode(new Node("z",  80,  260));
         graph.addNode(new Node("k", 190,  260));
         graph.addNode(new Node("a", 300,  180));
@@ -37,7 +40,7 @@ public class GraphData {
         graph.addNode(new Node("l", 790,   90));
     }
 
-    private static void addEdges(Graph graph) {
+    private static void addEdges(Graph<Node, Edge<Node>> graph) {
         Node z=graph.getNode("z"), k=graph.getNode("k"), a=graph.getNode("a");
         Node x=graph.getNode("x"), g=graph.getNode("g"), t=graph.getNode("t");
         Node n=graph.getNode("n"), p=graph.getNode("p"), m=graph.getNode("m");
@@ -46,17 +49,17 @@ public class GraphData {
         Node f=graph.getNode("f"), h=graph.getNode("h"), i=graph.getNode("i");
         Node j=graph.getNode("j"), l=graph.getNode("l");
 
-        // Main route: z -> k -> a -> x -> g -> t -> n -> p -> w
+        // Main route
         graph.addEdge(z, k, 5);
         graph.addEdge(k, a, 4);
         graph.addEdge(a, x, 6);
-        graph.addEdge(x, g, 3);   // <- problematic edge from assignment
+        graph.addEdge(x, g, 3);
         graph.addEdge(g, t, 5);
         graph.addEdge(t, n, 4);
         graph.addEdge(n, p, 3);
         graph.addEdge(p, w, 6);
 
-        // Alternative roads
+        // Alternatives
         graph.addEdge(z, b, 7);   graph.addEdge(b, a, 4);
         graph.addEdge(x, m, 5);   graph.addEdge(m, u, 4);
         graph.addEdge(u, t, 6);   graph.addEdge(g, u, 4);
@@ -72,8 +75,7 @@ public class GraphData {
         graph.addEdge(h, i, 5);   graph.addEdge(j, l, 4);
     }
 
-    private static void markProblematicEdges(Graph graph) {
-        // Edge x-g is marked problematic as shown in the assignment
+    private static void markProblematicEdges(Graph<Node, Edge<Node>> graph) {
         graph.setProblematic(graph.getNode("x"), graph.getNode("g"), true);
     }
 }

@@ -1,8 +1,11 @@
 package Model;
 
+import java.util.Objects;
+
 public class Node {
-    public String name;
-    public int x, y; // position on screen for drawing
+    private final String name;
+    private final int x;
+    private final int y;
 
     public Node(String name, int x, int y) {
         this.name = name;
@@ -10,15 +13,21 @@ public class Node {
         this.y = y;
     }
 
+    public String getName() { return name; }
+    public int getX() { return x; }
+    public int getY() { return y; }
+
     @Override
     public String toString() { return name; }
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof Node)) return false;
-        return this.name.equals(((Node) obj).name);
+        if (!(obj instanceof Node other)) return false;
+        return Objects.equals(this.name, other.name);
     }
 
     @Override
-    public int hashCode() { return name.hashCode(); }
+    public int hashCode() {
+        return Objects.hash(name);
+    }
 }

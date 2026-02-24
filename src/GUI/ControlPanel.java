@@ -12,7 +12,7 @@ import java.util.List;
 
 public class ControlPanel extends JPanel {
 
-    private final Graph graph;
+    private final Graph<Node, Edge<Node>> graph;
     private final GraphPanel graphPanel;
     private final ResultPanel resultPanel;
     private final JComboBox<String> startBox;
@@ -21,7 +21,7 @@ public class ControlPanel extends JPanel {
     private static final Color DARK  = new Color(30, 40, 60);
     private static final Color DARK2 = new Color(40, 52, 75);
 
-    public ControlPanel(Graph graph, GraphPanel graphPanel, ResultPanel resultPanel) {
+    public ControlPanel(Graph<Node, Edge<Node>> graph, GraphPanel graphPanel, ResultPanel resultPanel) {
         this.graph       = graph;
         this.graphPanel  = graphPanel;
         this.resultPanel = resultPanel;
@@ -33,10 +33,12 @@ public class ControlPanel extends JPanel {
         // Dropdowns with all nodes
         startBox = new JComboBox<>();
         endBox   = new JComboBox<>();
-        for (Node n : graph.getNodes()) {
-            startBox.addItem(n.name);
-            endBox.addItem(n.name);
+
+        for (Node n : graph.getNodesView()) {
+            startBox.addItem(n.getName());
+            endBox.addItem(n.getName());
         }
+
         startBox.setSelectedItem("z");
         endBox.setSelectedItem("w");
 
@@ -69,9 +71,9 @@ public class ControlPanel extends JPanel {
     // Section 2: node management
     private JPanel buildNodeSection() {
         JPanel p = darkPanel("2. Manage Nodes (Villages)");
-        p.add(darkButton("Add Node",  () -> addNode()));
+        p.add(darkButton("Add Node", this::addNode));
         p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Find Node", () -> findNode()));
+        p.add(darkButton("Find Node", this::findNode));
         return p;
     }
 
@@ -82,21 +84,29 @@ public class ControlPanel extends JPanel {
         p.add(Box.createVerticalStrut(5));
         p.add(darkButton("Unmark Problematic",  () -> markEdge(false)));
         p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Edit Weight",         () -> editWeight()));
+        p.add(darkButton("Edit Weight",         this::editWeight));
         p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Add Road",            () -> addEdge()));
+        p.add(darkButton("Add Road",            this::addEdge));
         p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Remove Road",         () -> removeEdge()));
+        p.add(darkButton("Remove Road",         this::removeEdge));
         return p;
     }
 
     // Main calculation: finds main path + alternatives
     private void calculateRoutes() {
-        Node start = graph.getNode((String) startBox.getSelectedItem());
-        Node end   = graph.getNode((String) endBox.getSelectedItem());
+        Node start = graph.getNodeByName((String) startBox.getSelectedItem());
+        Node end   = graph.getNodeByName((String) endBox.getSelectedItem());
+
+        if (start == null || end == null) {
+            resultPanel.show("Start or end node not found.");
+            return;
+        }
 
         List<Node> mainPath = Dijkstra.shortestPath(graph, start, end, null);
-        if (mainPath.isEmpty()) { resultPanel.show("No path found."); return; }
+        if (mainPath.isEmpty()) {
+            resultPanel.show("No path found.");
+            return;
+        }
 
         graphPanel.highlightPath(mainPath);
         double mainDist = Dijkstra.pathDistance(graph, mainPath);
@@ -108,19 +118,34 @@ public class ControlPanel extends JPanel {
         sb.append("=== ALTERNATIVE ROUTES ===\n\n");
 
         boolean found = false;
+
         for (int i = 0; i < mainPath.size() - 1; i++) {
-            Node from = mainPath.get(i), to = mainPath.get(i + 1);
-            Edge edge = Dijkstra.findEdge(graph, from, to);
-            if (edge != null && edge.problematic) {
+            Node from = mainPath.get(i);
+            Node to   = mainPath.get(i + 1);
+
+            Edge<Node> edge = Dijkstra.findEdge(graph, from, to);
+
+            if (edge != null && edge.isProblematic()) {
                 found = true;
-                sb.append("Blocking edge (").append(from.name).append("-").append(to.name).append("):\n");
+
+                sb.append("Blocking edge (")
+                        .append(from.getName()).append("-").append(to.getName())
+                        .append("):\n");
+
                 List<Node> alt = Dijkstra.shortestPath(graph, start, end, edge);
-                if (alt.isEmpty()) { sb.append("  -> No alternative exists!\n\n"); continue; }
+
+                if (alt.isEmpty()) {
+                    sb.append("  -> No alternative exists!\n\n");
+                    continue;
+                }
+
                 double altDist = Dijkstra.pathDistance(graph, alt);
                 sb.append("  -> ").append(pathToString(alt)).append("\n");
-                sb.append("  -> Time: ").append((int) altDist).append(" min (+").append((int)(altDist - mainDist)).append(" min)\n\n");
+                sb.append("  -> Time: ").append((int) altDist)
+                        .append(" min (+").append((int) (altDist - mainDist)).append(" min)\n\n");
             }
         }
+
         if (!found) sb.append("No problematic edges on main route.\n");
         resultPanel.show(sb.toString());
     }
@@ -128,59 +153,110 @@ public class ControlPanel extends JPanel {
     private void addNode() {
         String name = ask("Name of new node:");
         if (name == null) return;
+
         graph.addNode(new Node(name, 400, 250));
         startBox.addItem(name);
         endBox.addItem(name);
+
         resultPanel.show("Node '" + name + "' added.");
     }
 
     private void findNode() {
         String name = ask("Search for node:");
         if (name == null) return;
-        Node n = graph.getNode(name);
+
+        Node n = graph.getNodeByName(name);
         resultPanel.show(n != null ? "Node '" + name + "' found." : "Node '" + name + "' not found.");
     }
 
     private void markEdge(boolean value) {
-        String from = ask("From node:"), to = ask("To node:");
-        if (from == null || to == null) return;
-        graph.setProblematic(graph.getNode(from), graph.getNode(to), value);
+        String fromName = ask("From node:");
+        String toName   = ask("To node:");
+        if (fromName == null || toName == null) return;
+
+        Node from = graph.getNodeByName(fromName);
+        Node to   = graph.getNodeByName(toName);
+
+        if (from == null || to == null) {
+            resultPanel.show("Node not found.");
+            return;
+        }
+
+        graph.setUndirectedProblematic(from, to, value);
         graphPanel.repaint();
-        resultPanel.show("Edge (" + from + "-" + to + ") " + (value ? "marked as problematic." : "unmarked."));
+
+        resultPanel.show("Edge (" + fromName + "-" + toName + ") " +
+                (value ? "marked as problematic." : "unmarked."));
     }
 
     private void editWeight() {
-        String from = ask("From node:"), to = ask("To node:"), w = ask("New weight (minutes):");
-        if (from == null || to == null || w == null) return;
+        String fromName = ask("From node:");
+        String toName   = ask("To node:");
+        String w        = ask("New weight (minutes):");
+        if (fromName == null || toName == null || w == null) return;
+
+        Node from = graph.getNodeByName(fromName);
+        Node to   = graph.getNodeByName(toName);
+
+        if (from == null || to == null) {
+            resultPanel.show("Node not found.");
+            return;
+        }
+
         try {
-            graph.setEdgeWeight(graph.getNode(from), graph.getNode(to), Double.parseDouble(w));
+            graph.setUndirectedEdgeWeight(from, to, Double.parseDouble(w));
             graphPanel.repaint();
-            resultPanel.show("Edge (" + from + "-" + to + ") weight changed to " + w + " min.");
-        } catch (NumberFormatException ex) { resultPanel.show("Invalid number."); }
+            resultPanel.show("Edge (" + fromName + "-" + toName + ") weight changed to " + w + " min.");
+        } catch (NumberFormatException ex) {
+            resultPanel.show("Invalid number.");
+        }
     }
 
     private void addEdge() {
-        String from = ask("From node:"), to = ask("To node:"), w = ask("Weight (minutes):");
-        if (from == null || to == null || w == null) return;
+        String fromName = ask("From node:");
+        String toName   = ask("To node:");
+        String w        = ask("Weight (minutes):");
+        if (fromName == null || toName == null || w == null) return;
+
+        Node from = graph.getNodeByName(fromName);
+        Node to   = graph.getNodeByName(toName);
+
+        if (from == null || to == null) {
+            resultPanel.show("Node not found.");
+            return;
+        }
+
         try {
-            graph.addEdge(graph.getNode(from), graph.getNode(to), Double.parseDouble(w));
+            graph.addUndirectedEdge(from, to, Double.parseDouble(w));
             graphPanel.repaint();
-            resultPanel.show("Edge (" + from + "-" + to + ") added.");
-        } catch (NumberFormatException ex) { resultPanel.show("Invalid number."); }
+            resultPanel.show("Edge (" + fromName + "-" + toName + ") added.");
+        } catch (NumberFormatException ex) {
+            resultPanel.show("Invalid number.");
+        }
     }
 
     private void removeEdge() {
-        String from = ask("From node:"), to = ask("To node:");
-        if (from == null || to == null) return;
-        graph.removeEdge(graph.getNode(from), graph.getNode(to));
+        String fromName = ask("From node:");
+        String toName   = ask("To node:");
+        if (fromName == null || toName == null) return;
+
+        Node from = graph.getNodeByName(fromName);
+        Node to   = graph.getNodeByName(toName);
+
+        if (from == null || to == null) {
+            resultPanel.show("Node not found.");
+            return;
+        }
+
+        graph.removeUndirectedEdge(from, to);
         graphPanel.repaint();
-        resultPanel.show("Edge (" + from + "-" + to + ") removed.");
+        resultPanel.show("Edge (" + fromName + "-" + toName + ") removed.");
     }
 
     private String pathToString(List<Node> path) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < path.size(); i++) {
-            sb.append(path.get(i).name);
+            sb.append(path.get(i).getName());
             if (i < path.size() - 1) sb.append(" -> ");
         }
         return sb.toString();
