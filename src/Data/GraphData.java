@@ -6,76 +6,78 @@ import Model.Node;
 
 public class GraphData {
 
-    public static Graph<Node, Edge<Node>> buildGraph() {
-        // Explicit types help Java infer generics correctly
-        Graph<Node, Edge<Node>> graph = new Graph<Node, Edge<Node>>(Edge::new);
+    public static Graph<Node<String>, Edge<Node<String>>> buildGraph() {
+
+        Graph<Node<String>, Edge<Node<String>>> graph =
+                new Graph<Node<String>, Edge<Node<String>>>(
+                        (from, to, w) -> new Edge<>(from, to, w)
+                );
 
         addNodes(graph);
         addEdges(graph);
-        markProblematicEdges(graph);
 
         return graph;
     }
 
-    private static void addNodes(Graph<Node, Edge<Node>> graph) {
-        graph.addNode(new Node("z",  80,  260));
-        graph.addNode(new Node("k", 190,  260));
-        graph.addNode(new Node("a", 300,  180));
-        graph.addNode(new Node("x", 410,  180));
-        graph.addNode(new Node("g", 520,  180));
-        graph.addNode(new Node("t", 630,  180));
-        graph.addNode(new Node("n", 740,  180));
-        graph.addNode(new Node("p", 850,  180));
-        graph.addNode(new Node("w", 920,  260));
-        graph.addNode(new Node("m", 460,  330));
-        graph.addNode(new Node("u", 570,  330));
-        graph.addNode(new Node("b", 190,  370));
-        graph.addNode(new Node("c", 300,  330));
-        graph.addNode(new Node("d", 410,  330));
-        graph.addNode(new Node("e", 790,  330));
-        graph.addNode(new Node("f", 300,   90));
-        graph.addNode(new Node("h", 350,  420));
-        graph.addNode(new Node("i", 490,   90));
-        graph.addNode(new Node("j", 630,   90));
-        graph.addNode(new Node("l", 790,   90));
+    private static void addNodes(Graph<Node<String>, Edge<Node<String>>> graph) {
+
+        graph.addNode(new Node<>("z",  80,  90));
+        graph.addNode(new Node<>("k", 140, 150));
+        graph.addNode(new Node<>("s", 460, 180));
+        graph.addNode(new Node<>("i", 540, 260));
+
+        graph.addNode(new Node<>("a", 230, 350));
+        graph.addNode(new Node<>("x", 360, 430));
+
+        graph.addNode(new Node<>("u", 200, 590));
+
+        graph.addNode(new Node<>("m", 650, 480));
+        graph.addNode(new Node<>("g", 620, 560));
+        graph.addNode(new Node<>("t", 620, 690));
+
+        graph.addNode(new Node<>("r", 430, 600));
+        graph.addNode(new Node<>("f", 520, 600));
+        graph.addNode(new Node<>("n", 470, 690));
+
+        graph.addNode(new Node<>("p", 240, 660));
+        graph.addNode(new Node<>("w", 210, 720));
     }
 
-    private static void addEdges(Graph<Node, Edge<Node>> graph) {
-        Node z=graph.getNode("z"), k=graph.getNode("k"), a=graph.getNode("a");
-        Node x=graph.getNode("x"), g=graph.getNode("g"), t=graph.getNode("t");
-        Node n=graph.getNode("n"), p=graph.getNode("p"), m=graph.getNode("m");
-        Node u=graph.getNode("u"), w=graph.getNode("w"), b=graph.getNode("b");
-        Node c=graph.getNode("c"), d=graph.getNode("d"), e=graph.getNode("e");
-        Node f=graph.getNode("f"), h=graph.getNode("h"), i=graph.getNode("i");
-        Node j=graph.getNode("j"), l=graph.getNode("l");
+    private static void addEdges(Graph<Node<String>, Edge<Node<String>>> graph) {
+        Node<String> z = graph.getNodeById("z");
+        Node<String> k = graph.getNodeById("k");
+        Node<String> s = graph.getNodeById("s");
+        Node<String> i = graph.getNodeById("i");
+        Node<String> a = graph.getNodeById("a");
+        Node<String> x = graph.getNodeById("x");
+        Node<String> u = graph.getNodeById("u");
+        Node<String> m = graph.getNodeById("m");
+        Node<String> g = graph.getNodeById("g");
+        Node<String> t = graph.getNodeById("t");
+        Node<String> n = graph.getNodeById("n");
+        Node<String> p = graph.getNodeById("p");
+        Node<String> w = graph.getNodeById("w");
+        Node<String> r = graph.getNodeById("r");
+        Node<String> f = graph.getNodeById("f");
 
-        // Main route
-        graph.addEdge(z, k, 5);
-        graph.addEdge(k, a, 4);
-        graph.addEdge(a, x, 6);
-        graph.addEdge(x, g, 3);
-        graph.addEdge(g, t, 5);
-        graph.addEdge(t, n, 4);
-        graph.addEdge(n, p, 3);
-        graph.addEdge(p, w, 6);
-
-        // Alternatives
-        graph.addEdge(z, b, 7);   graph.addEdge(b, a, 4);
-        graph.addEdge(x, m, 5);   graph.addEdge(m, u, 4);
-        graph.addEdge(u, t, 6);   graph.addEdge(g, u, 4);
-        graph.addEdge(m, w, 7);   graph.addEdge(k, c, 3);
-        graph.addEdge(c, d, 4);   graph.addEdge(d, g, 5);
-        graph.addEdge(n, e, 3);   graph.addEdge(e, w, 4);
-        graph.addEdge(a, f, 5);   graph.addEdge(f, t, 6);
-        graph.addEdge(b, h, 4);   graph.addEdge(h, m, 5);
-        graph.addEdge(c, i, 3);   graph.addEdge(i, n, 4);
-        graph.addEdge(d, j, 5);   graph.addEdge(j, p, 4);
-        graph.addEdge(u, l, 3);   graph.addEdge(l, w, 5);
-        graph.addEdge(z, f, 9);   graph.addEdge(b, c, 6);
-        graph.addEdge(h, i, 5);   graph.addEdge(j, l, 4);
-    }
-
-    private static void markProblematicEdges(Graph<Node, Edge<Node>> graph) {
-        graph.setProblematic(graph.getNode("x"), graph.getNode("g"), true);
+        graph.addUndirectedEdge(z, k, 2);
+        graph.addUndirectedEdge(k, s, 8);
+        graph.addUndirectedEdge(k, a, 4);
+        graph.addUndirectedEdge(a, s, 12);
+        graph.addUndirectedEdge(s, i, 3);
+        graph.addUndirectedEdge(a, x, 5);
+        graph.addUndirectedEdge(i, x, 3);
+        graph.addUndirectedEdge(s, x, 10);
+        graph.addUndirectedEdge(x, u, 8);
+        graph.addUndirectedEdge(u, g, 13);
+        graph.addUndirectedEdge(x, g, 12);
+        graph.addUndirectedEdge(x, m, 8);
+        graph.addUndirectedEdge(m, g, 2);
+        graph.addUndirectedEdge(g, t, 4);
+        graph.addUndirectedEdge(t, n, 2);
+        graph.addUndirectedEdge(n, p, 5);
+        graph.addUndirectedEdge(p, w, 1);
+        graph.addUndirectedEdge(r, n, 2);
+        graph.addUndirectedEdge(f, n, 3);
     }
 }

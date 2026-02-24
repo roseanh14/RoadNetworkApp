@@ -21,7 +21,6 @@ public class MainFrame extends JFrame {
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Network Visualization (Graph)", graphPanel);
         tabs.addTab("Results and Successor Vector",  resultPanel);
-
         add(controlPanel, BorderLayout.WEST);
         add(tabs,         BorderLayout.CENTER);
 

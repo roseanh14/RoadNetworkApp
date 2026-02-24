@@ -1,6 +1,5 @@
 package GUI;
 
-import Algorithm.Dijkstra;
 import Model.Edge;
 import Model.Graph;
 import Model.Node;
@@ -8,294 +7,73 @@ import Model.Node;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.List;
 
 public class ControlPanel extends JPanel {
 
-    private final Graph<Node, Edge<Node>> graph;
-    private final GraphPanel graphPanel;
-    private final ResultPanel resultPanel;
-    private final JComboBox<String> startBox;
-    private final JComboBox<String> endBox;
+    private static final Color DARK = new Color(30, 40, 60), DARK2 = new Color(40, 52, 75);
+    private final JComboBox<String> start = new JComboBox<>(), end = new JComboBox<>();
+    private final ControlActions a;
 
-    private static final Color DARK  = new Color(30, 40, 60);
-    private static final Color DARK2 = new Color(40, 52, 75);
-
-    public ControlPanel(Graph<Node, Edge<Node>> graph, GraphPanel graphPanel, ResultPanel resultPanel) {
-        this.graph       = graph;
-        this.graphPanel  = graphPanel;
-        this.resultPanel = resultPanel;
+    public ControlPanel(Graph<Node<String>, Edge<Node<String>>> g, GraphPanel gp, ResultPanel rp) {
+        this.a = new ControlActions(g, gp, rp, this);
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(DARK);
-        setPreferredSize(new Dimension(220, 300));
+        setPreferredSize(new Dimension(220, 600));
 
-        // Dropdowns with all nodes
-        startBox = new JComboBox<>();
-        endBox   = new JComboBox<>();
+        a.fill(start, end);
+        start.setSelectedItem("z");
+        end.setSelectedItem("w");
 
-        for (Node n : graph.getNodesView()) {
-            startBox.addItem(n.getName());
-            endBox.addItem(n.getName());
-        }
+        add(section("1. Calculate Routes",
+                label("Start node:"), start,
+                label("End node:"), end,
+                button("Calculate Routes", () -> a.routes(val(start), val(end)), new Color(52,152,219))
+        ));
 
-        startBox.setSelectedItem("z");
-        endBox.setSelectedItem("w");
+        add(section("2. Manage Nodes",
+                button("Add Node", a::addNode),
+                button("Find Node", a::findNode)
+        ));
 
-        add(buildRouteSection());
-        add(buildNodeSection());
-        add(buildEdgeSection());
+        add(section("3. Manage Roads",
+                button("Edit Weight",  () -> a.edge(ControlActions.EdgeOp.EDIT_WEIGHT)),
+                button("Add Road",     () -> a.edge(ControlActions.EdgeOp.ADD)),
+                button("Remove Road",  () -> a.edge(ControlActions.EdgeOp.REMOVE)),
+                button("Block road (temporarily)", a::blockTemporary, new Color(231, 76, 60)),
+                button("Unblock road", a::unblock, new Color(46, 204, 113))
+        ));
+
+        add(section("4. File (Load / Save)",
+                button("Load edges.csv", a::loadFromFile),
+                button("Save result.txt", a::saveResult)
+        ));
     }
 
-    // Section 1: route calculation
-    private JPanel buildRouteSection() {
-        JPanel p = darkPanel("1. Calculate Alternative Routes");
+    private static String val(JComboBox<String> b){ Object v=b.getSelectedItem(); return v==null?null:v.toString(); }
 
-        p.add(whiteLabel("Start node:"));
-        p.add(startBox);
-        p.add(Box.createVerticalStrut(5));
-        p.add(whiteLabel("End node:"));
-        p.add(endBox);
-        p.add(Box.createVerticalStrut(10));
-
-        JButton btn = new JButton("Calculate Routes");
-        btn.setBackground(new Color(52, 152, 219));
-        btn.setForeground(Color.WHITE);
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.addActionListener(e -> calculateRoutes());
-        p.add(btn);
-
-        return p;
-    }
-
-    // Section 2: node management
-    private JPanel buildNodeSection() {
-        JPanel p = darkPanel("2. Manage Nodes (Villages)");
-        p.add(darkButton("Add Node", this::addNode));
-        p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Find Node", this::findNode));
-        return p;
-    }
-
-    // Section 3: edge management
-    private JPanel buildEdgeSection() {
-        JPanel p = darkPanel("3. Manage Roads (Edges)");
-        p.add(darkButton("Mark as Problematic", () -> markEdge(true)));
-        p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Unmark Problematic",  () -> markEdge(false)));
-        p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Edit Weight",         this::editWeight));
-        p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Add Road",            this::addEdge));
-        p.add(Box.createVerticalStrut(5));
-        p.add(darkButton("Remove Road",         this::removeEdge));
-        return p;
-    }
-
-    // Main calculation: finds main path + alternatives
-    private void calculateRoutes() {
-        Node start = graph.getNodeByName((String) startBox.getSelectedItem());
-        Node end   = graph.getNodeByName((String) endBox.getSelectedItem());
-
-        if (start == null || end == null) {
-            resultPanel.show("Start or end node not found.");
-            return;
-        }
-
-        List<Node> mainPath = Dijkstra.shortestPath(graph, start, end, null);
-        if (mainPath.isEmpty()) {
-            resultPanel.show("No path found.");
-            return;
-        }
-
-        graphPanel.highlightPath(mainPath);
-        double mainDist = Dijkstra.pathDistance(graph, mainPath);
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== MAIN SHORTEST ROUTE ===\n");
-        sb.append(pathToString(mainPath)).append("\n");
-        sb.append("Total time: ").append((int) mainDist).append(" min\n\n");
-        sb.append("=== ALTERNATIVE ROUTES ===\n\n");
-
-        boolean found = false;
-
-        for (int i = 0; i < mainPath.size() - 1; i++) {
-            Node from = mainPath.get(i);
-            Node to   = mainPath.get(i + 1);
-
-            Edge<Node> edge = Dijkstra.findEdge(graph, from, to);
-
-            if (edge != null && edge.isProblematic()) {
-                found = true;
-
-                sb.append("Blocking edge (")
-                        .append(from.getName()).append("-").append(to.getName())
-                        .append("):\n");
-
-                List<Node> alt = Dijkstra.shortestPath(graph, start, end, edge);
-
-                if (alt.isEmpty()) {
-                    sb.append("  -> No alternative exists!\n\n");
-                    continue;
-                }
-
-                double altDist = Dijkstra.pathDistance(graph, alt);
-                sb.append("  -> ").append(pathToString(alt)).append("\n");
-                sb.append("  -> Time: ").append((int) altDist)
-                        .append(" min (+").append((int) (altDist - mainDist)).append(" min)\n\n");
-            }
-        }
-
-        if (!found) sb.append("No problematic edges on main route.\n");
-        resultPanel.show(sb.toString());
-    }
-
-    private void addNode() {
-        String name = ask("Name of new node:");
-        if (name == null) return;
-
-        graph.addNode(new Node(name, 400, 250));
-        startBox.addItem(name);
-        endBox.addItem(name);
-
-        resultPanel.show("Node '" + name + "' added.");
-    }
-
-    private void findNode() {
-        String name = ask("Search for node:");
-        if (name == null) return;
-
-        Node n = graph.getNodeByName(name);
-        resultPanel.show(n != null ? "Node '" + name + "' found." : "Node '" + name + "' not found.");
-    }
-
-    private void markEdge(boolean value) {
-        String fromName = ask("From node:");
-        String toName   = ask("To node:");
-        if (fromName == null || toName == null) return;
-
-        Node from = graph.getNodeByName(fromName);
-        Node to   = graph.getNodeByName(toName);
-
-        if (from == null || to == null) {
-            resultPanel.show("Node not found.");
-            return;
-        }
-
-        graph.setUndirectedProblematic(from, to, value);
-        graphPanel.repaint();
-
-        resultPanel.show("Edge (" + fromName + "-" + toName + ") " +
-                (value ? "marked as problematic." : "unmarked."));
-    }
-
-    private void editWeight() {
-        String fromName = ask("From node:");
-        String toName   = ask("To node:");
-        String w        = ask("New weight (minutes):");
-        if (fromName == null || toName == null || w == null) return;
-
-        Node from = graph.getNodeByName(fromName);
-        Node to   = graph.getNodeByName(toName);
-
-        if (from == null || to == null) {
-            resultPanel.show("Node not found.");
-            return;
-        }
-
-        try {
-            graph.setUndirectedEdgeWeight(from, to, Double.parseDouble(w));
-            graphPanel.repaint();
-            resultPanel.show("Edge (" + fromName + "-" + toName + ") weight changed to " + w + " min.");
-        } catch (NumberFormatException ex) {
-            resultPanel.show("Invalid number.");
-        }
-    }
-
-    private void addEdge() {
-        String fromName = ask("From node:");
-        String toName   = ask("To node:");
-        String w        = ask("Weight (minutes):");
-        if (fromName == null || toName == null || w == null) return;
-
-        Node from = graph.getNodeByName(fromName);
-        Node to   = graph.getNodeByName(toName);
-
-        if (from == null || to == null) {
-            resultPanel.show("Node not found.");
-            return;
-        }
-
-        try {
-            graph.addUndirectedEdge(from, to, Double.parseDouble(w));
-            graphPanel.repaint();
-            resultPanel.show("Edge (" + fromName + "-" + toName + ") added.");
-        } catch (NumberFormatException ex) {
-            resultPanel.show("Invalid number.");
-        }
-    }
-
-    private void removeEdge() {
-        String fromName = ask("From node:");
-        String toName   = ask("To node:");
-        if (fromName == null || toName == null) return;
-
-        Node from = graph.getNodeByName(fromName);
-        Node to   = graph.getNodeByName(toName);
-
-        if (from == null || to == null) {
-            resultPanel.show("Node not found.");
-            return;
-        }
-
-        graph.removeUndirectedEdge(from, to);
-        graphPanel.repaint();
-        resultPanel.show("Edge (" + fromName + "-" + toName + ") removed.");
-    }
-
-    private String pathToString(List<Node> path) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < path.size(); i++) {
-            sb.append(path.get(i).getName());
-            if (i < path.size() - 1) sb.append(" -> ");
-        }
-        return sb.toString();
-    }
-
-    private String ask(String question) {
-        String s = JOptionPane.showInputDialog(this, question);
-        return (s == null || s.trim().isEmpty()) ? null : s.trim();
-    }
-
-    private JPanel darkPanel(String title) {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+    private JPanel section(String title, JComponent... items) {
+        JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setBackground(DARK2);
         p.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(new Color(80, 100, 130)),
-                        title, 0, 0, new Font("Arial", Font.BOLD, 11), Color.LIGHT_GRAY),
-                new EmptyBorder(5, 8, 8, 8)
+                BorderFactory.createTitledBorder(BorderFactory.createLineBorder(new Color(80,100,130)),
+                        title,0,0,new Font("Arial",Font.BOLD,11),Color.LIGHT_GRAY),
+                new EmptyBorder(6,8,8,8)
         ));
-        p.setMaximumSize(new Dimension(220, 300));
+        p.setMaximumSize(new Dimension(220, 380));
+        for (int i=0;i<items.length;i++){ p.add(items[i]); if(i<items.length-1) p.add(Box.createVerticalStrut(6)); }
         return p;
     }
 
-    private JButton darkButton(String label, Runnable action) {
-        JButton btn = new JButton(label);
-        btn.setBackground(new Color(55, 70, 95));
-        btn.setForeground(Color.WHITE);
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(200, 28));
-        btn.addActionListener(e -> action.run());
-        return btn;
-    }
+    private JLabel label(String t){ JLabel l=new JLabel(t); l.setForeground(Color.LIGHT_GRAY); l.setFont(new Font("Arial",Font.PLAIN,11)); return l; }
 
-    private JLabel whiteLabel(String text) {
-        JLabel l = new JLabel(text);
-        l.setForeground(Color.LIGHT_GRAY);
-        l.setFont(new Font("Arial", Font.PLAIN, 11));
-        l.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return l;
+    private JButton button(String t, Runnable r){ return button(t,r,new Color(55,70,95)); }
+    private JButton button(String t, Runnable r, Color bg){
+        JButton b=new JButton(t);
+        b.setBackground(bg); b.setForeground(Color.WHITE);
+        b.setAlignmentX(Component.CENTER_ALIGNMENT);
+        b.setMaximumSize(new Dimension(200,28));
+        b.addActionListener(e->r.run());
+        return b;
     }
 }

@@ -1,15 +1,19 @@
 package Model;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-public class Graph<N extends Node, E extends Edge<N>> {
+public class Graph<N extends Node<?>, E extends Edge<N>> {
 
     private final List<N> nodes = new ArrayList<>();
     private final List<E> edges = new ArrayList<>();
 
-    public interface EdgeFactory<N extends Node, E extends Edge<N>> {
+    // fast lookup by id
+    private final Map<Object, N> nodeById = new HashMap<>();
+
+    // adjacency list (fast edgesFrom)
+    private final Map<N, List<E>> adj = new HashMap<>();
+
+    public interface EdgeFactory<N extends Node<?>, E extends Edge<N>> {
         E create(N from, N to, double weight);
     }
 
@@ -20,28 +24,24 @@ public class Graph<N extends Node, E extends Edge<N>> {
     }
 
     public void addNode(N node) {
-        if (node == null) return;
-        if (!nodes.contains(node)) nodes.add(node);
+        nodes.add(node);
+        nodeById.put(node.getId(), node);
+        adj.putIfAbsent(node, new ArrayList<>());
     }
 
-    public N getNodeByName(String name) {
-        for (N n : nodes) {
-            if (n.getName().equals(name)) return n;
-        }
-        return null;
+    public N getNodeById(Object id) {
+        return nodeById.get(id);
     }
 
-    public List<N> getNodesView() {
-        return Collections.unmodifiableList(nodes);
+    public void addUndirectedEdge(N a, N b, double w) {
+        addDirectedEdge(a, b, w);
+        addDirectedEdge(b, a, w);
     }
 
-    public void addUndirectedEdge(N a, N b, double weight) {
-        if (a == null || b == null) return;
-        addNode(a);
-        addNode(b);
-
-        edges.add(edgeFactory.create(a, b, weight));
-        edges.add(edgeFactory.create(b, a, weight));
+    private void addDirectedEdge(N from, N to, double w) {
+        E e = edgeFactory.create(from, to, w);
+        edges.add(e);
+        adj.computeIfAbsent(from, k -> new ArrayList<>()).add(e);
     }
 
     public void removeUndirectedEdge(N a, N b) {
@@ -49,63 +49,24 @@ public class Graph<N extends Node, E extends Edge<N>> {
                 (e.getFrom().equals(a) && e.getTo().equals(b)) ||
                         (e.getFrom().equals(b) && e.getTo().equals(a))
         );
+
+        List<E> la = adj.get(a);
+        if (la != null) la.removeIf(e -> e.getTo().equals(b));
+
+        List<E> lb = adj.get(b);
+        if (lb != null) lb.removeIf(e -> e.getTo().equals(a));
     }
 
-    public void setUndirectedEdgeWeight(N a, N b, double newWeight) {
-        for (E e : edges) {
-            boolean matches =
-                    (e.getFrom().equals(a) && e.getTo().equals(b)) ||
-                            (e.getFrom().equals(b) && e.getTo().equals(a));
-            if (matches) e.setWeight(newWeight);
-        }
+    public void setUndirectedEdgeWeight(N a, N b, double w) {
+        for (E e : edgesFrom(a)) if (e.getTo().equals(b)) e.setWeight(w);
+        for (E e : edgesFrom(b)) if (e.getTo().equals(a)) e.setWeight(w);
     }
 
-    public void setUndirectedProblematic(N a, N b, boolean value) {
-        for (E e : edges) {
-            boolean matches =
-                    (e.getFrom().equals(a) && e.getTo().equals(b)) ||
-                            (e.getFrom().equals(b) && e.getTo().equals(a));
-            if (matches) e.setProblematic(value);
-        }
+    public List<E> edgesFrom(N node) {
+        return Collections.unmodifiableList(adj.getOrDefault(node, List.of()));
     }
 
-    public List<E> getEdgesFrom(N node) {
-        List<E> out = new ArrayList<>();
-        for (E e : edges) {
-            if (e.getFrom().equals(node)) out.add(e);
-        }
-        return Collections.unmodifiableList(out);
-    }
-
-    public List<E> getEdgesView() {
-        return Collections.unmodifiableList(edges);
-    }
-
-    public N getNode(String name) {
-        return getNodeByName(name);
-    }
-
-    public void addEdge(N from, N to, double weight) {
-        addUndirectedEdge(from, to, weight);
-    }
-
-    public void setProblematic(N from, N to, boolean value) {
-        setUndirectedProblematic(from, to, value);
-    }
-
-    public void setEdgeWeight(N from, N to, double w) {
-        setUndirectedEdgeWeight(from, to, w);
-    }
-
-    public void removeEdge(N from, N to) {
-        removeUndirectedEdge(from, to);
-    }
-
-    public List<N> getNodes() {
-        return getNodesView();
-    }
-
-    public List<E> getEdges() {
-        return getEdgesView();
-    }
+    // do not expose internal structure
+    public List<N> nodes() { return Collections.unmodifiableList(nodes); }
+    public List<E> edges() { return Collections.unmodifiableList(edges); }
 }
