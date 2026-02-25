@@ -14,11 +14,10 @@ public class Edge<N extends Node<?>> {
     public N getFrom() { return from; }
     public N getTo() { return to; }
     public double getWeight() { return weight; }
-
     public void setWeight(double weight) { this.weight = weight; }
 
     @Override
     public String toString() {
-        return from.getId() + " -> " + to.getId() + " (" + (int) weight + ")";
+        return from + " -> " + to + " (" + (int)weight + ")";
     }
 }

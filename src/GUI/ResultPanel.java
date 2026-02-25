@@ -3,21 +3,24 @@ package GUI;
 import javax.swing.*;
 import java.awt.*;
 
-// Panel where calculation results are displayed as text
 public class ResultPanel extends JPanel {
 
-    private JTextArea textArea;
+    private final JTextArea textArea;
 
     public ResultPanel() {
         setLayout(new BorderLayout());
-        textArea = new JTextArea("Calculation results will appear here...\n");
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        textArea = new JTextArea();
+        textArea.setFont(new Font("Consolas", Font.PLAIN, 13));
         textArea.setEditable(false);
-        textArea.setMargin(new Insets(10, 10, 10, 10));
-        add(new JScrollPane(textArea));
+        add(new JScrollPane(textArea), BorderLayout.CENTER);
     }
 
     public void show(String text) {
-        textArea.setText(text);
+        textArea.setText(text == null ? "" : text);
+        textArea.setCaretPosition(0);
+    }
+
+    public String getText() {
+        return textArea.getText();
     }
 }

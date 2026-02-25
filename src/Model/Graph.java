@@ -4,33 +4,50 @@ import java.util.*;
 
 public class Graph<N extends Node<?>, E extends Edge<N>> {
 
-    private final List<N> nodes = new ArrayList<>();
-    private final List<E> edges = new ArrayList<>();
-
-    // fast lookup by id
-    private final Map<Object, N> nodeById = new HashMap<>();
-
-    // adjacency list (fast edgesFrom)
-    private final Map<N, List<E>> adj = new HashMap<>();
-
+    @FunctionalInterface
     public interface EdgeFactory<N extends Node<?>, E extends Edge<N>> {
         E create(N from, N to, double weight);
     }
 
     private final EdgeFactory<N, E> edgeFactory;
 
+    private final List<N> nodes = new ArrayList<>();
+    private final List<E> edges = new ArrayList<>();
+
+    // adjacency for fast edgesFrom
+    private final Map<N, List<E>> adj = new HashMap<>();
+
     public Graph(EdgeFactory<N, E> edgeFactory) {
-        this.edgeFactory = edgeFactory;
+        this.edgeFactory = Objects.requireNonNull(edgeFactory);
     }
 
     public void addNode(N node) {
+        if (node == null) return;
+        if (nodes.contains(node)) return;
         nodes.add(node);
-        nodeById.put(node.getId(), node);
-        adj.putIfAbsent(node, new ArrayList<>());
+        adj.put(node, new ArrayList<>());
+    }
+
+    // Read-only views (no internal structure leakage)
+    public List<N> nodes() {
+        return Collections.unmodifiableList(nodes);
+    }
+
+    public List<E> edges() {
+        return Collections.unmodifiableList(edges);
+    }
+
+    public List<E> edgesFrom(N node) {
+        List<E> list = adj.get(node);
+        if (list == null) return List.of();
+        return Collections.unmodifiableList(list);
     }
 
     public N getNodeById(Object id) {
-        return nodeById.get(id);
+        for (N n : nodes) {
+            if (Objects.equals(n.id(), id)) return n;
+        }
+        return null;
     }
 
     public void addUndirectedEdge(N a, N b, double w) {
@@ -39,34 +56,46 @@ public class Graph<N extends Node<?>, E extends Edge<N>> {
     }
 
     private void addDirectedEdge(N from, N to, double w) {
+        if (from == null || to == null) return;
+        if (!adj.containsKey(from)) addNode(from);
+        if (!adj.containsKey(to)) addNode(to);
+
+        // replace if exists
+        E existing = findDirected(from, to);
+        if (existing != null) {
+            existing.setWeight(w);
+            return;
+        }
+
         E e = edgeFactory.create(from, to, w);
         edges.add(e);
-        adj.computeIfAbsent(from, k -> new ArrayList<>()).add(e);
+        adj.get(from).add(e);
     }
 
     public void removeUndirectedEdge(N a, N b) {
-        edges.removeIf(e ->
-                (e.getFrom().equals(a) && e.getTo().equals(b)) ||
-                        (e.getFrom().equals(b) && e.getTo().equals(a))
-        );
+        removeDirectedEdge(a, b);
+        removeDirectedEdge(b, a);
+    }
 
-        List<E> la = adj.get(a);
-        if (la != null) la.removeIf(e -> e.getTo().equals(b));
-
-        List<E> lb = adj.get(b);
-        if (lb != null) lb.removeIf(e -> e.getTo().equals(a));
+    private void removeDirectedEdge(N from, N to) {
+        E e = findDirected(from, to);
+        if (e == null) return;
+        edges.remove(e);
+        List<E> list = adj.get(from);
+        if (list != null) list.remove(e);
     }
 
     public void setUndirectedEdgeWeight(N a, N b, double w) {
-        for (E e : edgesFrom(a)) if (e.getTo().equals(b)) e.setWeight(w);
-        for (E e : edgesFrom(b)) if (e.getTo().equals(a)) e.setWeight(w);
+        E ab = findDirected(a, b);
+        E ba = findDirected(b, a);
+        if (ab != null) ab.setWeight(w);
+        if (ba != null) ba.setWeight(w);
     }
 
-    public List<E> edgesFrom(N node) {
-        return Collections.unmodifiableList(adj.getOrDefault(node, List.of()));
+    public E findDirected(N from, N to) {
+        List<E> list = adj.get(from);
+        if (list == null) return null;
+        for (E e : list) if (e.getTo().equals(to)) return e;
+        return null;
     }
-
-    // do not expose internal structure
-    public List<N> nodes() { return Collections.unmodifiableList(nodes); }
-    public List<E> edges() { return Collections.unmodifiableList(edges); }
 }

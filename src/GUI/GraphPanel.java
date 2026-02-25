@@ -12,18 +12,14 @@ import java.util.List;
 public class GraphPanel extends JPanel {
 
     private final Graph<Node<String>, Edge<Node<String>>> graph;
+
     private List<Node<String>> highlightedPath = new ArrayList<>();
 
+    // temporary block (only for drawing)
     private Node<String> blockedFrom = null;
     private Node<String> blockedTo = null;
 
-    private static final int BASE_NODE_RADIUS = 16;
-    private static final int PADDING = 40;
-
-    // transform
-    private double minX, maxX, minY, maxY;
-    private double scale = 1.0;
-    private int offsetX = 0, offsetY = 0;
+    private static final int NODE_RADIUS = 12;
 
     public GraphPanel(Graph<Node<String>, Edge<Node<String>>> graph) {
         this.graph = graph;
@@ -35,7 +31,7 @@ public class GraphPanel extends JPanel {
         repaint();
     }
 
-    // show blocked road in red
+    // this is what ControlActions calls
     public void setBlockedEdge(Node<String> from, Node<String> to) {
         this.blockedFrom = from;
         this.blockedTo = to;
@@ -49,45 +45,8 @@ public class GraphPanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        computeTransform();
         drawEdges(g2);
         drawNodes(g2);
-    }
-
-    private void computeTransform() {
-        minX = Double.POSITIVE_INFINITY; maxX = Double.NEGATIVE_INFINITY;
-        minY = Double.POSITIVE_INFINITY; maxY = Double.NEGATIVE_INFINITY;
-
-        boolean any = false;
-        for (Node<String> n : graph.nodes()) {
-            any = true;
-            minX = Math.min(minX, n.getX());
-            maxX = Math.max(maxX, n.getX());
-            minY = Math.min(minY, n.getY());
-            maxY = Math.max(maxY, n.getY());
-        }
-
-        if (!any) { scale = 1.0; offsetX = offsetY = PADDING; return; }
-
-        double w = Math.max(1.0, maxX - minX);
-        double h = Math.max(1.0, maxY - minY);
-
-        int panelW = Math.max(1, getWidth()  - 2 * PADDING);
-        int panelH = Math.max(1, getHeight() - 2 * PADDING);
-
-        scale = Math.min(panelW / w, panelH / h);
-        scale = Math.min(scale, 1.8);
-
-        offsetX = PADDING - (int) Math.round(minX * scale);
-        offsetY = PADDING - (int) Math.round(minY * scale);
-    }
-
-    private int sx(Node<String> n) { return offsetX + (int) Math.round(n.getX() * scale); }
-    private int sy(Node<String> n) { return offsetY + (int) Math.round(n.getY() * scale); }
-
-    private int nodeRadius() {
-        int r = (int) Math.round(BASE_NODE_RADIUS * scale);
-        return Math.max(10, Math.min(22, r));
     }
 
     private void drawEdges(Graphics2D g2) {
@@ -97,65 +56,60 @@ public class GraphPanel extends JPanel {
             Node<String> from = e.getFrom();
             Node<String> to   = e.getTo();
 
-            String a = String.valueOf(from.getId());
-            String b = String.valueOf(to.getId());
-
-            String key = a + "-" + b;
-            String rev = b + "-" + a;
+            String key = from.id() + "-" + to.id();
+            String rev = to.id() + "-" + from.id();
             if (drawn.contains(key) || drawn.contains(rev)) continue;
             drawn.add(key);
 
             boolean onPath = isOnPath(from, to);
-            boolean blocked = isBlocked(from, to);
+            boolean isBlocked = isBlocked(from, to);
 
-            g2.setColor(blocked
-                    ? Color.RED
-                    : (onPath ? new Color(46, 204, 113) : Color.GRAY));
+            // color
+            if (isBlocked) g2.setColor(Color.RED);
+            else if (onPath) g2.setColor(new Color(46, 204, 113));
+            else g2.setColor(Color.GRAY);
 
-            float stroke = onPath ? 3f : 1f;
-            stroke = (float) Math.max(1.0, stroke * scale);
+            // stroke
+            float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
-            int x1 = sx(from), y1 = sy(from);
-            int x2 = sx(to),   y2 = sy(to);
+            int x1 = from.x(), y1 = from.y();
+            int x2 = to.x(),   y2 = to.y();
 
             g2.drawLine(x1, y1, x2, y2);
 
-            // weight label
-            int fontSize = Math.max(9, Math.min(12, (int) Math.round(10 * scale)));
-            g2.setFont(new Font("Arial", Font.PLAIN, fontSize));
-            g2.setColor(Color.DARK_GRAY);
-
+            // weight label in middle
             int midX = (x1 + x2) / 2;
-            int midY = (y1 + y2) / 2 - 4;
-            g2.drawString(String.valueOf((int) e.getWeight()), midX, midY);
+            int midY = (y1 + y2) / 2;
+
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            g2.setColor(Color.DARK_GRAY);
+            g2.drawString(String.valueOf((int) e.getWeight()), midX + 2, midY - 2);
         }
     }
 
     private void drawNodes(Graphics2D g2) {
-        int r = nodeRadius();
-        int d = r * 2;
+        int d = NODE_RADIUS * 2;
 
-        int fontSize = Math.max(10, Math.min(14, (int) Math.round(12 * scale)));
-        g2.setFont(new Font("Arial", Font.BOLD, fontSize));
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
         FontMetrics fm = g2.getFontMetrics();
 
         for (Node<String> node : graph.nodes()) {
             boolean onPath = highlightedPath.contains(node);
 
-            int cx = sx(node), cy = sy(node);
-            int x = cx - r, y = cy - r;
+            int cx = node.x(), cy = node.y();
+            int x = cx - NODE_RADIUS, y = cy - NODE_RADIUS;
 
             g2.setColor(onPath ? new Color(46, 204, 113) : new Color(74, 144, 217));
             g2.fillOval(x, y, d, d);
 
             g2.setColor(Color.WHITE);
-            g2.setStroke(new BasicStroke(Math.max(1f, (float)(2f * scale))));
+            g2.setStroke(new BasicStroke(2f));
             g2.drawOval(x, y, d, d);
 
-            String label = String.valueOf(node.getId());
+            String label = String.valueOf(node.id());
             g2.setColor(Color.WHITE);
-            g2.drawString(label, cx - fm.stringWidth(label) / 2, cy + (fm.getAscent() / 3));
+            g2.drawString(label, cx - fm.stringWidth(label) / 2, cy + 5);
         }
     }
 

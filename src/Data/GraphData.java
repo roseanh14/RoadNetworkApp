@@ -9,15 +9,14 @@ public class GraphData {
     public static Graph<Node<String>, Edge<Node<String>>> buildGraph() {
 
         Graph<Node<String>, Edge<Node<String>>> graph =
-                new Graph<Node<String>, Edge<Node<String>>>(
-                        (from, to, w) -> new Edge<>(from, to, w)
-                );
+                new Graph<>((Node<String> from, Node<String> to, double w) -> new Edge<>(from, to, w));
 
         addNodes(graph);
         addEdges(graph);
 
         return graph;
     }
+
 
     private static void addNodes(Graph<Node<String>, Edge<Node<String>>> graph) {
 
