@@ -41,6 +41,9 @@ public class Dijkstra {
         return shortestPath(graph, start, end, (a, b) -> isBlocked(a, b, blockedFrom, blockedTo));
     }
 
+    /*
+    V teto metode bych si zkusil promyslet, zda se v nekterych iteracich while-cyklu neprochazi kus kodu zbytecne, coz zvysuje cas algoritmu.
+    */
     public static <ID> List<Node<ID>> shortestPath(Graph<Node<ID>, Edge<Node<ID>>> graph,
                                                    Node<ID> start,
                                                    Node<ID> end,
