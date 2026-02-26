@@ -1,101 +1,133 @@
 package Model;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Graph<N extends Node<?>, E extends Edge<N>> {
+public class Graph<N, E> implements Serializable {
 
     @FunctionalInterface
-    public interface EdgeFactory<N extends Node<?>, E extends Edge<N>> {
+    public interface EdgeFactory<N, E> extends Serializable {
         E create(N from, N to, double weight);
     }
 
     private final EdgeFactory<N, E> edgeFactory;
 
-    private final List<N> nodes = new ArrayList<>();
-    private final List<E> edges = new ArrayList<>();
+    private final Map<String, N> nodesById = new LinkedHashMap<>();
 
-    // adjacency for fast edgesFrom
     private final Map<N, List<E>> adj = new HashMap<>();
 
     public Graph(EdgeFactory<N, E> edgeFactory) {
-        this.edgeFactory = Objects.requireNonNull(edgeFactory);
+        this.edgeFactory = edgeFactory;
     }
+
 
     public void addNode(N node) {
         if (node == null) return;
-        if (nodes.contains(node)) return;
-        nodes.add(node);
-        adj.put(node, new ArrayList<>());
+        String id = nodeId(node);
+        nodesById.put(id, node);
+        adj.computeIfAbsent(node, k -> new ArrayList<>());
     }
 
-    // Read-only views (no internal structure leakage)
-    public List<N> nodes() {
-        return Collections.unmodifiableList(nodes);
+    public N getNodeById(String id) {
+        if (id == null) return null;
+        return nodesById.get(id);
     }
 
-    public List<E> edges() {
-        return Collections.unmodifiableList(edges);
+    public Collection<N> nodes() {
+        return nodesById.values();
     }
 
-    public List<E> edgesFrom(N node) {
-        List<E> list = adj.get(node);
-        if (list == null) return List.of();
-        return Collections.unmodifiableList(list);
-    }
+    public boolean removeNode(N node) {
+        if (node == null) return false;
 
-    public N getNodeById(Object id) {
-        for (N n : nodes) {
-            if (Objects.equals(n.id(), id)) return n;
+        String id = nodeId(node);
+        N real = nodesById.get(id);
+        if (real == null) return false;
+
+        adj.remove(real);
+
+        for (List<E> list : adj.values()) {
+            list.removeIf(e -> edgeTo(e).equals(real));
         }
-        return null;
+
+        nodesById.remove(id);
+
+        return true;
+    }
+
+
+    public Collection<E> edges() {
+        List<E> all = new ArrayList<>();
+        for (List<E> list : adj.values()) all.addAll(list);
+        return all;
+    }
+
+    public List<E> edgesFrom(N from) {
+        return adj.getOrDefault(from, List.of());
     }
 
     public void addUndirectedEdge(N a, N b, double w) {
-        addDirectedEdge(a, b, w);
-        addDirectedEdge(b, a, w);
-    }
+        if (a == null || b == null) return;
 
-    private void addDirectedEdge(N from, N to, double w) {
-        if (from == null || to == null) return;
-        if (!adj.containsKey(from)) addNode(from);
-        if (!adj.containsKey(to)) addNode(to);
+        if (!nodesById.containsKey(nodeId(a))) addNode(a);
+        if (!nodesById.containsKey(nodeId(b))) addNode(b);
 
-        // replace if exists
-        E existing = findDirected(from, to);
-        if (existing != null) {
-            existing.setWeight(w);
-            return;
-        }
+        E ab = findDirectedEdge(a, b);
+        if (ab == null) adj.get(a).add(edgeFactory.create(a, b, w));
+        else setEdgeWeight(ab, w);
 
-        E e = edgeFactory.create(from, to, w);
-        edges.add(e);
-        adj.get(from).add(e);
+        E ba = findDirectedEdge(b, a);
+        if (ba == null) adj.get(b).add(edgeFactory.create(b, a, w));
+        else setEdgeWeight(ba, w);
     }
 
     public void removeUndirectedEdge(N a, N b) {
+        if (a == null || b == null) return;
         removeDirectedEdge(a, b);
         removeDirectedEdge(b, a);
     }
 
-    private void removeDirectedEdge(N from, N to) {
-        E e = findDirected(from, to);
-        if (e == null) return;
-        edges.remove(e);
-        List<E> list = adj.get(from);
-        if (list != null) list.remove(e);
-    }
-
     public void setUndirectedEdgeWeight(N a, N b, double w) {
-        E ab = findDirected(a, b);
-        E ba = findDirected(b, a);
-        if (ab != null) ab.setWeight(w);
-        if (ba != null) ba.setWeight(w);
+        if (a == null || b == null) return;
+
+        E ab = findDirectedEdge(a, b);
+        E ba = findDirectedEdge(b, a);
+
+        if (ab == null || ba == null) {
+            addUndirectedEdge(a, b, w);
+            return;
+        }
+
+        setEdgeWeight(ab, w);
+        setEdgeWeight(ba, w);
     }
 
-    public E findDirected(N from, N to) {
+
+    private void removeDirectedEdge(N from, N to) {
+        List<E> list = adj.get(from);
+        if (list == null) return;
+        list.removeIf(e -> edgeTo(e).equals(to));
+    }
+
+    private E findDirectedEdge(N from, N to) {
         List<E> list = adj.get(from);
         if (list == null) return null;
-        for (E e : list) if (e.getTo().equals(to)) return e;
+        for (E e : list) {
+            if (edgeTo(e).equals(to)) return e;
+        }
         return null;
+    }
+
+    private String nodeId(N node) {
+        return String.valueOf(((Node<?>) node).id());
+    }
+
+    @SuppressWarnings("unchecked")
+    private N edgeTo(E e) {
+        return (N) ((Edge<?>) e).getTo();
+    }
+
+    private void setEdgeWeight(E e, double w) {
+        ((Edge<?>) e).setWeight(w);
     }
 }

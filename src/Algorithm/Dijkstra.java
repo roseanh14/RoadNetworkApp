@@ -6,6 +6,7 @@ import Model.Node;
 
 import java.util.*;
 
+@SuppressWarnings({"DuplicatedCode", "unused", "ClassCanBeRecord"})
 public class Dijkstra {
 
     @FunctionalInterface
@@ -24,6 +25,16 @@ public class Dijkstra {
             this.blockedTo = blockedTo;
             this.path = path;
             this.distance = distance;
+        }
+    }
+
+    private static class PQItem<ID> {
+        final Node<ID> node;
+        final double dist;
+
+        PQItem(Node<ID> node, double dist) {
+            this.node = node;
+            this.dist = dist;
         }
     }
 
@@ -49,16 +60,21 @@ public class Dijkstra {
         Map<Node<ID>, Double> dist = new HashMap<>();
         Map<Node<ID>, Node<ID>> prev = new HashMap<>();
 
-        PriorityQueue<Node<ID>> pq = new PriorityQueue<>(Comparator.comparingDouble(n ->
-                dist.getOrDefault(n, Double.MAX_VALUE)
-        ));
-
         for (Node<ID> n : graph.nodes()) dist.put(n, Double.MAX_VALUE);
         dist.put(start, 0.0);
-        pq.add(start);
+
+        PriorityQueue<PQItem<ID>> pq = new PriorityQueue<>(Comparator.comparingDouble(it -> it.dist));
+        pq.add(new PQItem<>(start, 0.0));
+
+        Set<Node<ID>> visited = new HashSet<>();
 
         while (!pq.isEmpty()) {
-            Node<ID> cur = pq.poll();
+            PQItem<ID> item = pq.poll();
+            Node<ID> cur = item.node;
+
+            if (item.dist != dist.getOrDefault(cur, Double.MAX_VALUE)) continue;
+            if (!visited.add(cur)) continue;
+
             if (cur.equals(end)) break;
 
             for (Edge<Node<ID>> e : graph.edgesFrom(cur)) {
@@ -66,12 +82,13 @@ public class Dijkstra {
                 Node<ID> et = e.getTo();
 
                 if (blocker.blocked(ef, et)) continue;
+                if (visited.contains(et)) continue;
 
                 double nd = dist.get(cur) + e.getWeight();
                 if (nd < dist.getOrDefault(et, Double.MAX_VALUE)) {
                     dist.put(et, nd);
                     prev.put(et, cur);
-                    pq.add(et);
+                    pq.add(new PQItem<>(et, nd));
                 }
             }
         }
@@ -79,9 +96,10 @@ public class Dijkstra {
         List<Node<ID>> path = new ArrayList<>();
         Node<ID> step = end;
         while (step != null) {
-            path.add(0, step);
+            path.add(step);
             step = prev.get(step);
         }
+        Collections.reverse(path);
 
         if (path.isEmpty() || !path.get(0).equals(start)) return new ArrayList<>();
         return path;
@@ -111,6 +129,14 @@ public class Dijkstra {
                                                              Node<ID> globalBlockedTo) {
 
         EdgeBlocker<ID> globalBlocker = (a, b) -> isBlocked(a, b, globalBlockedFrom, globalBlockedTo);
+        return topAlternatives(graph, start, end, limit, globalBlocker);
+    }
+
+    public static <ID> List<Alternative<ID>> topAlternatives(Graph<Node<ID>, Edge<Node<ID>>> graph,
+                                                             Node<ID> start,
+                                                             Node<ID> end,
+                                                             int limit,
+                                                             EdgeBlocker<ID> globalBlocker) {
 
         List<Node<ID>> base = shortestPath(graph, start, end, globalBlocker);
         if (base.isEmpty()) return List.of();

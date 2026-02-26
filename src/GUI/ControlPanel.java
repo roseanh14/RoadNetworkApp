@@ -35,7 +35,8 @@ public class ControlPanel extends JPanel {
 
         add(section("2. Manage Nodes (Villages)",
                 button("Add Node", a::addNode),
-                button("Find Node", a::findNode)
+                button("Find Node", a::findNode),
+                button("Remove Node", a::removeNode)
         ));
 
         add(section("3. Manage Roads (Edges)",

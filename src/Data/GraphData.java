@@ -9,14 +9,13 @@ public class GraphData {
     public static Graph<Node<String>, Edge<Node<String>>> buildGraph() {
 
         Graph<Node<String>, Edge<Node<String>>> graph =
-                new Graph<>((Node<String> from, Node<String> to, double w) -> new Edge<>(from, to, w));
+                new Graph<>(Edge::new);
 
         addNodes(graph);
         addEdges(graph);
 
         return graph;
     }
-
 
     private static void addNodes(Graph<Node<String>, Edge<Node<String>>> graph) {
 
@@ -43,21 +42,21 @@ public class GraphData {
     }
 
     private static void addEdges(Graph<Node<String>, Edge<Node<String>>> graph) {
-        Node<String> z = graph.getNodeById("z");
-        Node<String> k = graph.getNodeById("k");
-        Node<String> s = graph.getNodeById("s");
-        Node<String> i = graph.getNodeById("i");
-        Node<String> a = graph.getNodeById("a");
-        Node<String> x = graph.getNodeById("x");
-        Node<String> u = graph.getNodeById("u");
-        Node<String> m = graph.getNodeById("m");
-        Node<String> g = graph.getNodeById("g");
-        Node<String> t = graph.getNodeById("t");
-        Node<String> n = graph.getNodeById("n");
-        Node<String> p = graph.getNodeById("p");
-        Node<String> w = graph.getNodeById("w");
-        Node<String> r = graph.getNodeById("r");
-        Node<String> f = graph.getNodeById("f");
+        Node<String> z = requireNode(graph, "z");
+        Node<String> k = requireNode(graph, "k");
+        Node<String> s = requireNode(graph, "s");
+        Node<String> i = requireNode(graph, "i");
+        Node<String> a = requireNode(graph, "a");
+        Node<String> x = requireNode(graph, "x");
+        Node<String> u = requireNode(graph, "u");
+        Node<String> m = requireNode(graph, "m");
+        Node<String> g = requireNode(graph, "g");
+        Node<String> t = requireNode(graph, "t");
+        Node<String> n = requireNode(graph, "n");
+        Node<String> p = requireNode(graph, "p");
+        Node<String> w = requireNode(graph, "w");
+        Node<String> r = requireNode(graph, "r");
+        Node<String> f = requireNode(graph, "f");
 
         graph.addUndirectedEdge(z, k, 2);
         graph.addUndirectedEdge(k, s, 8);
@@ -78,5 +77,13 @@ public class GraphData {
         graph.addUndirectedEdge(p, w, 1);
         graph.addUndirectedEdge(r, n, 2);
         graph.addUndirectedEdge(f, n, 3);
+    }
+
+    private static Node<String> requireNode(Graph<Node<String>, Edge<Node<String>>> graph, String id) {
+        Node<String> node = graph.getNodeById(id);
+        if (node == null) {
+            throw new IllegalStateException("Missing node in GraphData: '" + id + "'");
+        }
+        return node;
     }
 }

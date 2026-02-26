@@ -1,6 +1,7 @@
 package GUI;
 
 import Data.GraphData;
+import Data.GraphFileIO;
 import Model.Edge;
 import Model.Graph;
 import Model.Node;
@@ -13,7 +14,14 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         super("RoadNetworkApp");
 
-        Graph<Node<String>, Edge<Node<String>>> graph = GraphData.buildGraph();
+        // Try cache first
+        Graph<Node<String>, Edge<Node<String>>> graph = GraphFileIO.loadCache();
+
+        // If cache missing, fall back to building the graph
+        if (graph == null) {
+            graph = GraphData.buildGraph();
+        }
+
         GraphPanel graphPanel = new GraphPanel(graph);
         ResultPanel resultPanel = new ResultPanel();
         ControlPanel controlPanel = new ControlPanel(graph, graphPanel, resultPanel);

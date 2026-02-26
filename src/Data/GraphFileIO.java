@@ -7,11 +7,14 @@ import Model.Node;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
+@SuppressWarnings("unused")
 public class GraphFileIO {
+
+    private static final String CACHE_FILE_NAME = "graph.cache";
 
     public static void loadEdgesCsv(Graph<Node<String>, Edge<Node<String>>> graph, File file) throws IOException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line = br.readLine(); // header
+            String line = br.readLine();
             if (line == null) return;
 
             while ((line = br.readLine()) != null) {
@@ -36,6 +39,45 @@ public class GraphFileIO {
     public static void saveText(File file, String text) throws IOException {
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             bw.write(text == null ? "" : text);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Graph<Node<String>, Edge<Node<String>>> loadCache() {
+        File f = new File(CACHE_FILE_NAME);
+        if (!f.exists() || !f.isFile()) return null;
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f))) {
+            Object obj = ois.readObject();
+            return (Graph<Node<String>, Edge<Node<String>>>) obj;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public static void saveCache(Graph<Node<String>, Edge<Node<String>>> graph) throws IOException {
+        File f = new File(CACHE_FILE_NAME);
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(f))) {
+            oos.writeObject(graph);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Graph<Node<String>, Edge<Node<String>>> loadGraphFromFile(File f) throws IOException {
+        if (f == null || !f.exists() || !f.isFile()) return null;
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f))) {
+            Object obj = ois.readObject();
+            return (Graph<Node<String>, Edge<Node<String>>>) obj;
+        } catch (ClassNotFoundException ex) {
+            return null;
+        }
+    }
+
+    public static void saveGraphToFile(Graph<Node<String>, Edge<Node<String>>> graph, File f) throws IOException {
+        if (f == null) throw new IllegalArgumentException("File is null");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(f))) {
+            oos.writeObject(graph);
         }
     }
 }

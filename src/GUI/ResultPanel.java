@@ -16,8 +16,14 @@ public class ResultPanel extends JPanel {
     }
 
     public void show(String text) {
-        textArea.setText(text == null ? "" : text);
-        textArea.setCaretPosition(0);
+        if (text == null || text.isEmpty()) return;
+
+        if (!textArea.getText().isEmpty()) {
+            textArea.append("\n----------------------------------------\n");
+        }
+
+        textArea.append(text + "\n");
+        textArea.setCaretPosition(textArea.getDocument().getLength()); // scroll to bottom
     }
 
     public String getText() {

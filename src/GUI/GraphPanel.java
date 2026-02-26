@@ -6,6 +6,8 @@ import Model.Node;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 
@@ -14,16 +16,48 @@ public class GraphPanel extends JPanel {
     private final Graph<Node<String>, Edge<Node<String>>> graph;
 
     private List<Node<String>> highlightedPath = new ArrayList<>();
-
-    // temporary block (only for drawing)
-    private Node<String> blockedFrom = null;
-    private Node<String> blockedTo = null;
+    private Node<String> selectedNode = null;
+    private Set<String> blockedEdges = new HashSet<>();
+    private String pendingAddNodeId = null;
 
     private static final int NODE_RADIUS = 12;
+
+    private static final int OFFSET_X = 0;
+    private static final int OFFSET_Y = -40;
 
     public GraphPanel(Graph<Node<String>, Edge<Node<String>>> graph) {
         this.graph = graph;
         setBackground(Color.WHITE);
+        setOpaque(true);
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+                int gx = e.getX() - OFFSET_X;
+                int gy = e.getY() - OFFSET_Y;
+
+                if (pendingAddNodeId != null && SwingUtilities.isLeftMouseButton(e)) {
+                    String id = pendingAddNodeId;
+                    pendingAddNodeId = null;
+
+                    if (graph.getNodeById(id) != null) {
+                        repaint();
+                        return;
+                    }
+
+                    graph.addNode(new Node<>(id, gx, gy));
+                    selectedNode = graph.getNodeById(id);
+                    repaint();
+                    return;
+                }
+
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    Node<String> clicked = findNodeAt(gx, gy);
+                    setSelectedNode(clicked);
+                }
+            }
+        });
     }
 
     public void highlightPath(List<Node<String>> path) {
@@ -31,10 +65,28 @@ public class GraphPanel extends JPanel {
         repaint();
     }
 
-    // this is what ControlActions calls
-    public void setBlockedEdge(Node<String> from, Node<String> to) {
-        this.blockedFrom = from;
-        this.blockedTo = to;
+    public void setSelectedNode(Node<String> node) {
+        this.selectedNode = node;
+        repaint();
+    }
+
+    public Node<String> getSelectedNode() {
+        return selectedNode;
+    }
+
+    public void setBlockedEdges(Set<String> keys) {
+        this.blockedEdges = (keys == null) ? new HashSet<>() : new HashSet<>(keys);
+        repaint();
+    }
+
+    public void beginAddNode(String nodeId) {
+        this.pendingAddNodeId = nodeId;
+        repaint();
+    }
+
+    @SuppressWarnings("unused")
+    public void cancelAddNode() {
+        this.pendingAddNodeId = null;
         repaint();
     }
 
@@ -42,11 +94,25 @@ public class GraphPanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        drawEdges(g2);
-        drawNodes(g2);
+            g2.translate(OFFSET_X, OFFSET_Y);
+
+            drawEdges(g2);
+            drawNodes(g2);
+
+            g2.translate(-OFFSET_X, -OFFSET_Y);
+
+            if (pendingAddNodeId != null) {
+                g2.setFont(new Font("Arial", Font.BOLD, 12));
+                g2.setColor(new Color(0, 0, 0, 150));
+                g2.drawString("Click to place node: " + pendingAddNodeId, 10, 20);
+            }
+        } finally {
+            g2.dispose();
+        }
     }
 
     private void drawEdges(Graphics2D g2) {
@@ -56,20 +122,17 @@ public class GraphPanel extends JPanel {
             Node<String> from = e.getFrom();
             Node<String> to   = e.getTo();
 
-            String key = from.id() + "-" + to.id();
-            String rev = to.id() + "-" + from.id();
-            if (drawn.contains(key) || drawn.contains(rev)) continue;
+            String key = edgeKey(from, to);
+            if (drawn.contains(key)) continue;
             drawn.add(key);
 
             boolean onPath = isOnPath(from, to);
-            boolean isBlocked = isBlocked(from, to);
+            boolean isBlocked = blockedEdges.contains(key);
 
-            // color
             if (isBlocked) g2.setColor(Color.RED);
             else if (onPath) g2.setColor(new Color(46, 204, 113));
             else g2.setColor(Color.GRAY);
 
-            // stroke
             float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
@@ -78,7 +141,6 @@ public class GraphPanel extends JPanel {
 
             g2.drawLine(x1, y1, x2, y2);
 
-            // weight label in middle
             int midX = (x1 + x2) / 2;
             int midY = (y1 + y2) / 2;
 
@@ -96,6 +158,7 @@ public class GraphPanel extends JPanel {
 
         for (Node<String> node : graph.nodes()) {
             boolean onPath = highlightedPath.contains(node);
+            boolean isSelected = (selectedNode != null && selectedNode.equals(node));
 
             int cx = node.x(), cy = node.y();
             int x = cx - NODE_RADIUS, y = cy - NODE_RADIUS;
@@ -106,6 +169,12 @@ public class GraphPanel extends JPanel {
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2f));
             g2.drawOval(x, y, d, d);
+
+            if (isSelected) {
+                g2.setColor(new Color(241, 196, 15));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawOval(x - 3, y - 3, d + 6, d + 6);
+            }
 
             String label = String.valueOf(node.id());
             g2.setColor(Color.WHITE);
@@ -122,9 +191,18 @@ public class GraphPanel extends JPanel {
         return false;
     }
 
-    private boolean isBlocked(Node<String> a, Node<String> b) {
-        if (blockedFrom == null || blockedTo == null) return false;
-        return (a.equals(blockedFrom) && b.equals(blockedTo)) ||
-                (a.equals(blockedTo) && b.equals(blockedFrom));
+    private Node<String> findNodeAt(int x, int y) {
+        for (Node<String> node : graph.nodes()) {
+            int dx = x - node.x();
+            int dy = y - node.y();
+            if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return node;
+        }
+        return null;
+    }
+
+    public static String edgeKey(Node<String> a, Node<String> b) {
+        String x = a.id();
+        String y = b.id();
+        return (x.compareTo(y) <= 0) ? x + "-" + y : y + "-" + x;
     }
 }
