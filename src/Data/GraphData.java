@@ -6,6 +6,11 @@ import Model.Node;
 
 public class GraphData {
 
+    /*
+    jelikoz se metoda buildGraph vola pouze pri nacteni win-okna pri spusteni aplikace, muzeme ji tedy zahodit.
+    Tim padem nepotrebujeme ani privatni metody addNodes a addEdges, a tim padem nepotrebujeme celou tuto tridu GraphData.
+    Data, co jsou tady hard-coded bych prepsal do souboru (json nebo xml ktere pak budeme nacitat pomoci tridy GraphFileIO).
+     */
     public static Graph<Node<String>, Edge<Node<String>>> buildGraph() {
 
         Graph<Node<String>, Edge<Node<String>>> graph =

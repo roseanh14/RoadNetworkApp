@@ -9,6 +9,12 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+/*
+V teto tride vymyslet selectovani nodu a hran pomoci mysi (bude potreba pouzit udalosti)
+a pridat vyrolovani menu s akcema po kliknuti pravym tlacitkem mysi.
+Taky by bylo dobre pridat udalosti na stisk nekterych tlacitek (napriklad del pro smazani atd.), tyto udalosti se
+vykonavaji pouze, kdyz je neco selectnuto.
+ */
 public class GraphPanel extends JPanel {
 
     private final Graph<Node<String>, Edge<Node<String>>> graph;

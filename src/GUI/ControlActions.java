@@ -13,7 +13,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
+/*
+Do teto tridy pridat tlacitka na nacteni a ulozeni grafu ze souboru.
+Taky osetrit to, ze pokud se po spusteni aplikace nepodari nacist cache soubor (metoda GraphFileIO.loadCache vrati null), tak disable vsechny buttons krome tlacitka Load Graph from File.
+ */
 public class ControlActions {
 
     public enum EdgeOp { EDIT_WEIGHT, ADD, REMOVE }

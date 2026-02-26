@@ -15,6 +15,7 @@ public class ResultPanel extends JPanel {
         add(new JScrollPane(textArea), BorderLayout.CENTER);
     }
 
+    //upravit aby si pamatovalo i predchozi text, a pridavalo to novy text pod sebe
     public void show(String text) {
         textArea.setText(text == null ? "" : text);
         textArea.setCaretPosition(0);
