@@ -135,10 +135,10 @@ public class GraphPanel extends JPanel {
             float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
-            int x1 = from.x().intValue();
-            int y1 = from.y().intValue();
-            int x2 = to.x().intValue();
-            int y2 = to.y().intValue();
+            int x1 = from.x();
+            int y1 = from.y();
+            int x2 = to.x();
+            int y2 = to.y();
 
             g2.drawLine(x1, y1, x2, y2);
 
@@ -161,8 +161,9 @@ public class GraphPanel extends JPanel {
             boolean onPath = highlightedPath.contains(node);
             boolean isSelected = (selectedNode != null && selectedNode.equals(node));
 
-            int cx = node.x().intValue();
-            int cy = node.y().intValue();
+            int cx = node.x();
+            int cy = node.y();
+
             int x = cx - NODE_RADIUS, y = cy - NODE_RADIUS;
 
             g2.setColor(onPath ? new Color(46, 204, 113) : new Color(74, 144, 217));
@@ -195,8 +196,8 @@ public class GraphPanel extends JPanel {
 
     private Node<String, Integer> findNodeAt(int x, int y) {
         for (Node<String, Integer> node : graph.nodes()) {
-            int dx = x - node.x().intValue();
-            int dy = y - node.y().intValue();
+            int dx = x - node.x();
+            int dy = y - node.y();
             if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return node;
         }
         return null;

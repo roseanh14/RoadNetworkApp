@@ -7,7 +7,10 @@ import Model.Node;
 public class GraphData {
 
     public static Graph<String, Integer, Double> buildGraph() {
-        Graph<String, Integer, Double> graph = new Graph<>((from, to, w) -> new Edge<>(from, to, w));
+        // (from, to, w) -> new Edge<>(from, to, w)
+        // nahradí se method reference:
+        Graph<String, Integer, Double> graph = new Graph<>(Edge::new);
+
         addNodes(graph);
         addEdges(graph);
         return graph;
