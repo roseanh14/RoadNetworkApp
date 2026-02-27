@@ -13,10 +13,10 @@ import java.util.List;
 
 public class GraphPanel extends JPanel {
 
-    private final Graph<String> graph;
+    private final Graph<String, Integer, Double> graph;
 
-    private List<Node<String>> highlightedPath = new ArrayList<>();
-    private Node<String> selectedNode = null;
+    private List<Node<String, Integer>> highlightedPath = new ArrayList<>();
+    private Node<String, Integer> selectedNode = null;
     private Set<String> blockedEdges = new HashSet<>();
     private String pendingAddNodeId = null;
 
@@ -25,7 +25,7 @@ public class GraphPanel extends JPanel {
     private static final int OFFSET_X = 0;
     private static final int OFFSET_Y = -40;
 
-    public GraphPanel(Graph<String> graph) {
+    public GraphPanel(Graph<String, Integer, Double> graph) {
         this.graph = graph;
         setBackground(Color.WHITE);
         setOpaque(true);
@@ -53,24 +53,24 @@ public class GraphPanel extends JPanel {
                 }
 
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    Node<String> clicked = findNodeAt(gx, gy);
+                    Node<String, Integer> clicked = findNodeAt(gx, gy);
                     setSelectedNode(clicked);
                 }
             }
         });
     }
 
-    public void highlightPath(List<Node<String>> path) {
+    public void highlightPath(List<Node<String, Integer>> path) {
         this.highlightedPath = (path == null) ? new ArrayList<>() : new ArrayList<>(path);
         repaint();
     }
 
-    public void setSelectedNode(Node<String> node) {
+    public void setSelectedNode(Node<String, Integer> node) {
         this.selectedNode = node;
         repaint();
     }
 
-    public Node<String> getSelectedNode() {
+    public Node<String, Integer> getSelectedNode() {
         return selectedNode;
     }
 
@@ -118,9 +118,9 @@ public class GraphPanel extends JPanel {
     private void drawEdges(Graphics2D g2) {
         Set<String> drawn = new HashSet<>();
 
-        for (Edge<String> e : graph.edges()) {
-            Node<String> from = e.getFrom();
-            Node<String> to   = e.getTo();
+        for (Edge<String, Integer, Double> e : graph.edges()) {
+            Node<String, Integer> from = e.getFrom();
+            Node<String, Integer> to   = e.getTo();
 
             String key = Graph.edgeKey(from, to);
             if (!drawn.add(key)) continue;
@@ -135,8 +135,10 @@ public class GraphPanel extends JPanel {
             float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
-            int x1 = from.x(), y1 = from.y();
-            int x2 = to.x(),   y2 = to.y();
+            int x1 = from.x().intValue();
+            int y1 = from.y().intValue();
+            int x2 = to.x().intValue();
+            int y2 = to.y().intValue();
 
             g2.drawLine(x1, y1, x2, y2);
 
@@ -145,7 +147,7 @@ public class GraphPanel extends JPanel {
 
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
             g2.setColor(Color.DARK_GRAY);
-            g2.drawString(String.valueOf((int) e.getWeight()), midX + 2, midY - 2);
+            g2.drawString(String.valueOf((int) Math.round(e.getWeight())), midX + 2, midY - 2);
         }
     }
 
@@ -155,11 +157,12 @@ public class GraphPanel extends JPanel {
         g2.setFont(new Font("Arial", Font.BOLD, 12));
         FontMetrics fm = g2.getFontMetrics();
 
-        for (Node<String> node : graph.nodes()) {
+        for (Node<String, Integer> node : graph.nodes()) {
             boolean onPath = highlightedPath.contains(node);
             boolean isSelected = (selectedNode != null && selectedNode.equals(node));
 
-            int cx = node.x(), cy = node.y();
+            int cx = node.x().intValue();
+            int cy = node.y().intValue();
             int x = cx - NODE_RADIUS, y = cy - NODE_RADIUS;
 
             g2.setColor(onPath ? new Color(46, 204, 113) : new Color(74, 144, 217));
@@ -181,19 +184,19 @@ public class GraphPanel extends JPanel {
         }
     }
 
-    private boolean isOnPath(Node<String> from, Node<String> to) {
+    private boolean isOnPath(Node<String, Integer> from, Node<String, Integer> to) {
         for (int i = 0; i < highlightedPath.size() - 1; i++) {
-            Node<String> a = highlightedPath.get(i);
-            Node<String> b = highlightedPath.get(i + 1);
+            Node<String, Integer> a = highlightedPath.get(i);
+            Node<String, Integer> b = highlightedPath.get(i + 1);
             if ((a.equals(from) && b.equals(to)) || (a.equals(to) && b.equals(from))) return true;
         }
         return false;
     }
 
-    private Node<String> findNodeAt(int x, int y) {
-        for (Node<String> node : graph.nodes()) {
-            int dx = x - node.x();
-            int dy = y - node.y();
+    private Node<String, Integer> findNodeAt(int x, int y) {
+        for (Node<String, Integer> node : graph.nodes()) {
+            int dx = x - node.x().intValue();
+            int dy = y - node.y().intValue();
             if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return node;
         }
         return null;

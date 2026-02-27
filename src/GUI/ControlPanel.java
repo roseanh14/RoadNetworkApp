@@ -1,7 +1,6 @@
 package GUI;
 
 import Model.Graph;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -14,7 +13,7 @@ public class ControlPanel extends JPanel {
     private final JComboBox<String> end   = new JComboBox<>();
     private final ControlActions a;
 
-    public ControlPanel(Graph<String> g, GraphPanel gp, ResultPanel rp) {
+    public ControlPanel(Graph<String, Integer, Double> g, GraphPanel gp, ResultPanel rp) {
         this.a = new ControlActions(g, gp, rp, this);
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -49,7 +48,7 @@ public class ControlPanel extends JPanel {
         ));
 
         add(section("5. Block road (temporarily)",
-                button("Block road", a::blockTemporary, new Color(192, 43, 43)),
+                button("Block road", a::blockTemporary, new Color(192, 57, 43)),
                 button("Unblock", a::unblock)
         ));
     }

@@ -12,13 +12,8 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         super("RoadNetworkApp");
 
-        // Try cache first
-        Graph<String> graph = GraphFileIO.loadCache();
-
-        // If cache missing, fall back to building the graph
-        if (graph == null) {
-            graph = GraphData.buildGraph();
-        }
+        Graph<String, Integer, Double> graph = GraphFileIO.loadCache();
+        if (graph == null) graph = GraphData.buildGraph();
 
         GraphPanel graphPanel = new GraphPanel(graph);
         ResultPanel resultPanel = new ResultPanel();

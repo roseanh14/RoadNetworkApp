@@ -19,14 +19,14 @@ public class ControlActions {
 
     private static final int ALT_LIMIT = 3;
 
-    private final Graph<String> g;
+    private final Graph<String, Integer, Double> g;
     private final GraphPanel gp;
     private final ResultPanel rp;
     private final JComponent parent;
 
     private final Set<String> blockedEdges = new HashSet<>();
 
-    public ControlActions(Graph<String> g,
+    public ControlActions(Graph<String, Integer, Double> g,
                           GraphPanel gp,
                           ResultPanel rp,
                           JComponent parent) {
@@ -39,25 +39,25 @@ public class ControlActions {
     public void fill(JComboBox<String> start, JComboBox<String> end) {
         start.removeAllItems();
         end.removeAllItems();
-        for (Node<String> n : g.nodes()) {
+        for (Node<String, Integer> n : g.nodes()) {
             start.addItem(String.valueOf(n.id()));
             end.addItem(String.valueOf(n.id()));
         }
     }
 
     public void routes(String startId, String endId) {
-        Node<String> start = getExistingNode(startId, "Start node not found.");
-        Node<String> end   = getExistingNode(endId,   "End node not found.");
+        Node<String, Integer> start = getExistingNode(startId, "Start node not found.");
+        Node<String, Integer> end   = getExistingNode(endId,   "End node not found.");
         if (start == null || end == null) return;
 
-        List<Node<String>> base = Dijkstra.shortestPath(g, start, end);
+        List<Node<String, Integer>> base = Dijkstra.shortestPath(g, start, end);
         if (base.isEmpty()) {
             rp.show("No path found.");
             return;
         }
         double baseDist = Dijkstra.pathDistance(g, base);
 
-        List<Node<String>> current = shortestPathWithBlocks(start, end, blockedEdges);
+        List<Node<String, Integer>> current = shortestPathWithBlocks(start, end, blockedEdges);
         if (current.isEmpty()) {
             rp.show("No path found (blocked roads may disconnect graph).");
             gp.highlightPath(List.of());
@@ -74,7 +74,7 @@ public class ControlActions {
         appendRouteBlock(sb, base, baseDist);
 
         sb.append("\n=== SUCCESSOR VECTOR (Tab.1) ===\n");
-        Map<Node<String>, Node<String>> successor = SuccessorVector.build(base);
+        Map<Node<String, Integer>, Node<String, Integer>> successor = SuccessorVector.build(base);
         sb.append(SuccessorVector.toTableString(successor)).append("\n");
 
         if (!blockedEdges.isEmpty()) {
@@ -95,7 +95,7 @@ public class ControlActions {
         rp.show(sb.toString());
     }
 
-    private record Alt(String blockedKey, List<Node<String>> path, double distance) {}
+    private record Alt(String blockedKey, List<Node<String, Integer>> path, double distance) {}
 
     private void appendAlternatives(StringBuilder sb, List<Alt> alts, double currentDist) {
         int idx = 1;
@@ -108,12 +108,16 @@ public class ControlActions {
         }
     }
 
-    private List<Node<String>> shortestPathWithBlocks(Node<String> start, Node<String> end, Set<String> blocks) {
+    private List<Node<String, Integer>> shortestPathWithBlocks(Node<String, Integer> start,
+                                                               Node<String, Integer> end,
+                                                               Set<String> blocks) {
         return Dijkstra.shortestPath(g, start, end, (a, b) -> blocks.contains(Graph.edgeKey(a, b)));
     }
 
-    private List<Alt> topAlternativesWithBlocks(Node<String> start, Node<String> end, Set<String> globalBlocks) {
-        List<Node<String>> cur = shortestPathWithBlocks(start, end, globalBlocks);
+    private List<Alt> topAlternativesWithBlocks(Node<String, Integer> start,
+                                                Node<String, Integer> end,
+                                                Set<String> globalBlocks) {
+        List<Node<String, Integer>> cur = shortestPathWithBlocks(start, end, globalBlocks);
         if (cur.isEmpty()) return List.of();
 
         String curKey = pathKey(cur);
@@ -128,7 +132,7 @@ public class ControlActions {
             Set<String> twoBlocks = new HashSet<>(globalBlocks);
             twoBlocks.add(extraBlock);
 
-            List<Node<String>> altPath = shortestPathWithBlocks(start, end, twoBlocks);
+            List<Node<String, Integer>> altPath = shortestPathWithBlocks(start, end, twoBlocks);
             if (altPath.isEmpty()) continue;
 
             String k = pathKey(altPath);
@@ -160,7 +164,7 @@ public class ControlActions {
         String id = ask("Search for node ID:");
         if (id == null) return;
 
-        Node<String> n = g.getNodeById(id);
+        Node<String, Integer> n = g.getNodeById(id);
         if (n == null) {
             gp.setSelectedNode(null);
             rp.show("Node not found: " + id);
@@ -172,11 +176,11 @@ public class ControlActions {
     }
 
     public void removeNode() {
-        Node<String> sel = gp.getSelectedNode();
+        Node<String, Integer> sel = gp.getSelectedNode();
         String id = (sel != null) ? String.valueOf(sel.id()) : ask("ID of node to remove:");
         if (id == null) return;
 
-        Node<String> n = getExistingNode(id, "Node not found: " + id);
+        Node<String, Integer> n = getExistingNode(id, "Node not found: " + id);
         if (n == null) return;
 
         boolean ok = g.removeNode(n);
@@ -196,8 +200,8 @@ public class ControlActions {
         NodePair pair = askEdgeNodes("From node ID:", "To node ID:");
         if (pair == null) return;
 
-        Node<String> from = pair.from();
-        Node<String> to = pair.to();
+        Node<String, Integer> from = pair.from();
+        Node<String, Integer> to = pair.to();
 
         try {
             switch (op) {
@@ -259,8 +263,8 @@ public class ControlActions {
             return;
         }
 
-        Node<String> a = getExistingNode(p[0].trim(), "Node not found in: " + s);
-        Node<String> b = getExistingNode(p[1].trim(), "Node not found in: " + s);
+        Node<String, Integer> a = getExistingNode(p[0].trim(), "Node not found in: " + s);
+        Node<String, Integer> b = getExistingNode(p[1].trim(), "Node not found in: " + s);
         if (a == null || b == null) return;
 
         blockedEdges.remove(Graph.edgeKey(a, b));
@@ -305,28 +309,28 @@ public class ControlActions {
         gp.repaint();
     }
 
-    private record NodePair(Node<String> from, Node<String> to) {}
+    private record NodePair(Node<String, Integer> from, Node<String, Integer> to) {}
 
     private NodePair askEdgeNodes(String qFrom, String qTo) {
         String fromId = ask(qFrom);
         String toId = ask(qTo);
         if (fromId == null || toId == null) return null;
 
-        Node<String> from = getExistingNode(fromId, "Node not found: " + fromId);
-        Node<String> to = getExistingNode(toId, "Node not found: " + toId);
+        Node<String, Integer> from = getExistingNode(fromId, "Node not found: " + fromId);
+        Node<String, Integer> to = getExistingNode(toId, "Node not found: " + toId);
         if (from == null || to == null) return null;
 
         return new NodePair(from, to);
     }
 
-    private Node<String> getExistingNode(String id, String errorMsg) {
+    private Node<String, Integer> getExistingNode(String id, String errorMsg) {
         if (id == null) return null;
-        Node<String> n = g.getNodeById(id);
+        Node<String, Integer> n = g.getNodeById(id);
         if (n == null) rp.show(errorMsg);
         return n;
     }
 
-    private void appendRouteBlock(StringBuilder sb, List<Node<String>> path, double dist) {
+    private void appendRouteBlock(StringBuilder sb, List<Node<String, Integer>> path, double dist) {
         sb.append("Path:\n").append(pathToString(path)).append("\n\n");
         sb.append("Calculation:\n").append(calculationString(path))
                 .append(" = ").append((int) dist).append("\n\n");
@@ -338,11 +342,11 @@ public class ControlActions {
                 .append(" = ").append((int) (a - b)).append(" min\n\n");
     }
 
-    private String calculationString(List<Node<String>> path) {
+    private String calculationString(List<Node<String, Integer>> path) {
         List<Integer> weights = new ArrayList<>();
         for (int i = 0; i < path.size() - 1; i++) {
-            Edge<String> e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
-            if (e != null) weights.add((int) e.getWeight());
+            Edge<String, Integer, Double> e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
+            if (e != null) weights.add((int) Math.round(e.getWeight()));
         }
         return joinWithPlus(weights);
     }
@@ -356,7 +360,7 @@ public class ControlActions {
         return sb.toString();
     }
 
-    private static String pathToDelimited(List<Node<String>> path, String delimiter) {
+    private static String pathToDelimited(List<Node<String, Integer>> path, String delimiter) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < path.size(); i++) {
             sb.append(path.get(i).id());
@@ -365,11 +369,11 @@ public class ControlActions {
         return sb.toString();
     }
 
-    private String pathToString(List<Node<String>> path) {
+    private String pathToString(List<Node<String, Integer>> path) {
         return pathToDelimited(path, " -> ");
     }
 
-    private static String pathKey(List<Node<String>> path) {
+    private static String pathKey(List<Node<String, Integer>> path) {
         return pathToDelimited(path, "->");
     }
 

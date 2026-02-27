@@ -5,28 +5,21 @@ import java.awt.*;
 
 public class ResultPanel extends JPanel {
 
-    private final JTextArea textArea;
+    private final JTextArea area = new JTextArea();
 
     public ResultPanel() {
         setLayout(new BorderLayout());
-        textArea = new JTextArea();
-        textArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        textArea.setEditable(false);
-        add(new JScrollPane(textArea), BorderLayout.CENTER);
+        area.setFont(new Font("Consolas", Font.PLAIN, 14));
+        area.setEditable(false);
+        add(new JScrollPane(area), BorderLayout.CENTER);
     }
 
     public void show(String text) {
-        if (text == null || text.isEmpty()) return;
-
-        if (!textArea.getText().isEmpty()) {
-            textArea.append("\n----------------------------------------\n");
-        }
-
-        textArea.append(text + "\n");
-        textArea.setCaretPosition(textArea.getDocument().getLength());
+        area.setText(text == null ? "" : text);
+        area.setCaretPosition(0);
     }
 
     public String getText() {
-        return textArea.getText();
+        return area.getText();
     }
 }

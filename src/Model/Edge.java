@@ -3,23 +3,23 @@ package Model;
 import java.io.Serial;
 import java.io.Serializable;
 
-public class Edge<ID> implements Serializable {
+public class Edge<ID, C extends Number, W extends Number> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private final Node<ID> from;
-    private final Node<ID> to;
-    private double weight;
+    private final Node<ID, C> from;
+    private final Node<ID, C> to;
+    private W weight;
 
-    public Edge(Node<ID> from, Node<ID> to, double weight) {
+    public Edge(Node<ID, C> from, Node<ID, C> to, W weight) {
         this.from = from;
         this.to = to;
         this.weight = weight;
     }
 
-    public Node<ID> getFrom() { return from; }
-    public Node<ID> getTo() { return to; }
+    public Node<ID, C> getFrom() { return from; }
+    public Node<ID, C> getTo() { return to; }
 
-    public double getWeight() { return weight; }
-    public void setWeight(double weight) { this.weight = weight; }
+    public W getWeight() { return weight; }
+    public void setWeight(W weight) { this.weight = weight; }
 }
