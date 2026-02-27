@@ -13,7 +13,7 @@ import java.util.List;
 
 public class GraphPanel extends JPanel {
 
-    private final Graph<Node<String>, Edge<Node<String>>> graph;
+    private final Graph<String> graph;
 
     private List<Node<String>> highlightedPath = new ArrayList<>();
     private Node<String> selectedNode = null;
@@ -25,7 +25,7 @@ public class GraphPanel extends JPanel {
     private static final int OFFSET_X = 0;
     private static final int OFFSET_Y = -40;
 
-    public GraphPanel(Graph<Node<String>, Edge<Node<String>>> graph) {
+    public GraphPanel(Graph<String> graph) {
         this.graph = graph;
         setBackground(Color.WHITE);
         setOpaque(true);
@@ -118,13 +118,12 @@ public class GraphPanel extends JPanel {
     private void drawEdges(Graphics2D g2) {
         Set<String> drawn = new HashSet<>();
 
-        for (Edge<Node<String>> e : graph.edges()) {
+        for (Edge<String> e : graph.edges()) {
             Node<String> from = e.getFrom();
             Node<String> to   = e.getTo();
 
-            String key = edgeKey(from, to);
-            if (drawn.contains(key)) continue;
-            drawn.add(key);
+            String key = Graph.edgeKey(from, to);
+            if (!drawn.add(key)) continue;
 
             boolean onPath = isOnPath(from, to);
             boolean isBlocked = blockedEdges.contains(key);
@@ -198,11 +197,5 @@ public class GraphPanel extends JPanel {
             if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return node;
         }
         return null;
-    }
-
-    public static String edgeKey(Node<String> a, Node<String> b) {
-        String x = a.id();
-        String y = b.id();
-        return (x.compareTo(y) <= 0) ? x + "-" + y : y + "-" + x;
     }
 }

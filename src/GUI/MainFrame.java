@@ -2,9 +2,7 @@ package GUI;
 
 import Data.GraphData;
 import Data.GraphFileIO;
-import Model.Edge;
 import Model.Graph;
-import Model.Node;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +13,7 @@ public class MainFrame extends JFrame {
         super("RoadNetworkApp");
 
         // Try cache first
-        Graph<Node<String>, Edge<Node<String>>> graph = GraphFileIO.loadCache();
+        Graph<String> graph = GraphFileIO.loadCache();
 
         // If cache missing, fall back to building the graph
         if (graph == null) {

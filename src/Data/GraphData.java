@@ -6,10 +6,8 @@ import Model.Node;
 
 public class GraphData {
 
-    public static Graph<Node<String>, Edge<Node<String>>> buildGraph() {
-
-        Graph<Node<String>, Edge<Node<String>>> graph =
-                new Graph<>(Edge::new);
+    public static Graph<String> buildGraph() {
+        Graph<String> graph = new Graph<>(Edge::new);
 
         addNodes(graph);
         addEdges(graph);
@@ -17,31 +15,25 @@ public class GraphData {
         return graph;
     }
 
-    private static void addNodes(Graph<Node<String>, Edge<Node<String>>> graph) {
-
+    private static void addNodes(Graph<String> graph) {
         graph.addNode(new Node<>("z",  80,  90));
         graph.addNode(new Node<>("k", 140, 150));
         graph.addNode(new Node<>("s", 460, 180));
         graph.addNode(new Node<>("i", 540, 260));
-
         graph.addNode(new Node<>("a", 230, 350));
         graph.addNode(new Node<>("x", 360, 430));
-
         graph.addNode(new Node<>("u", 200, 590));
-
         graph.addNode(new Node<>("m", 650, 480));
         graph.addNode(new Node<>("g", 620, 560));
         graph.addNode(new Node<>("t", 620, 690));
-
         graph.addNode(new Node<>("r", 430, 600));
         graph.addNode(new Node<>("f", 520, 600));
         graph.addNode(new Node<>("n", 470, 690));
-
         graph.addNode(new Node<>("p", 240, 660));
         graph.addNode(new Node<>("w", 210, 720));
     }
 
-    private static void addEdges(Graph<Node<String>, Edge<Node<String>>> graph) {
+    private static void addEdges(Graph<String> graph) {
         Node<String> z = requireNode(graph, "z");
         Node<String> k = requireNode(graph, "k");
         Node<String> s = requireNode(graph, "s");
@@ -79,11 +71,9 @@ public class GraphData {
         graph.addUndirectedEdge(f, n, 3);
     }
 
-    private static Node<String> requireNode(Graph<Node<String>, Edge<Node<String>>> graph, String id) {
+    private static Node<String> requireNode(Graph<String> graph, String id) {
         Node<String> node = graph.getNodeById(id);
-        if (node == null) {
-            throw new IllegalStateException("Missing node in GraphData: '" + id + "'");
-        }
+        if (node == null) throw new IllegalStateException("Missing node: " + id);
         return node;
     }
 }

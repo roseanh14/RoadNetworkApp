@@ -23,7 +23,7 @@ public class ResultPanel extends JPanel {
         }
 
         textArea.append(text + "\n");
-        textArea.setCaretPosition(textArea.getDocument().getLength()); // scroll to bottom
+        textArea.setCaretPosition(textArea.getDocument().getLength());
     }
 
     public String getText() {

@@ -19,14 +19,14 @@ public class ControlActions {
 
     private static final int ALT_LIMIT = 3;
 
-    private final Graph<Node<String>, Edge<Node<String>>> g;
+    private final Graph<String> g;
     private final GraphPanel gp;
     private final ResultPanel rp;
     private final JComponent parent;
 
     private final Set<String> blockedEdges = new HashSet<>();
 
-    public ControlActions(Graph<Node<String>, Edge<Node<String>>> g,
+    public ControlActions(Graph<String> g,
                           GraphPanel gp,
                           ResultPanel rp,
                           JComponent parent) {
@@ -40,15 +40,14 @@ public class ControlActions {
         start.removeAllItems();
         end.removeAllItems();
         for (Node<String> n : g.nodes()) {
-            start.addItem(n.id());
-            end.addItem(n.id());
+            start.addItem(String.valueOf(n.id()));
+            end.addItem(String.valueOf(n.id()));
         }
     }
 
-
     public void routes(String startId, String endId) {
         Node<String> start = getExistingNode(startId, "Start node not found.");
-        Node<String> end = getExistingNode(endId, "End node not found.");
+        Node<String> end   = getExistingNode(endId,   "End node not found.");
         if (start == null || end == null) return;
 
         List<Node<String>> base = Dijkstra.shortestPath(g, start, end);
@@ -110,7 +109,7 @@ public class ControlActions {
     }
 
     private List<Node<String>> shortestPathWithBlocks(Node<String> start, Node<String> end, Set<String> blocks) {
-        return Dijkstra.shortestPath(g, start, end, (a, b) -> blocks.contains(GraphPanel.edgeKey(a, b)));
+        return Dijkstra.shortestPath(g, start, end, (a, b) -> blocks.contains(Graph.edgeKey(a, b)));
     }
 
     private List<Alt> topAlternativesWithBlocks(Node<String> start, Node<String> end, Set<String> globalBlocks) {
@@ -123,7 +122,7 @@ public class ControlActions {
         Set<String> seenPaths = new HashSet<>();
 
         for (int i = 0; i < cur.size() - 1; i++) {
-            String extraBlock = GraphPanel.edgeKey(cur.get(i), cur.get(i + 1));
+            String extraBlock = Graph.edgeKey(cur.get(i), cur.get(i + 1));
             if (globalBlocks.contains(extraBlock)) continue;
 
             Set<String> twoBlocks = new HashSet<>(globalBlocks);
@@ -143,7 +142,6 @@ public class ControlActions {
         out.sort(Comparator.comparingDouble(Alt::distance));
         return out.size() > ALT_LIMIT ? out.subList(0, ALT_LIMIT) : out;
     }
-
 
     public void addNode() {
         String id = ask("ID of new node:");
@@ -175,7 +173,7 @@ public class ControlActions {
 
     public void removeNode() {
         Node<String> sel = gp.getSelectedNode();
-        String id = (sel != null) ? sel.id() : ask("ID of node to remove:");
+        String id = (sel != null) ? String.valueOf(sel.id()) : ask("ID of node to remove:");
         if (id == null) return;
 
         Node<String> n = getExistingNode(id, "Node not found: " + id);
@@ -194,7 +192,6 @@ public class ControlActions {
         rp.show("Node removed: " + id);
     }
 
-
     public void edge(EdgeOp op) {
         NodePair pair = askEdgeNodes("From node ID:", "To node ID:");
         if (pair == null) return;
@@ -206,7 +203,7 @@ public class ControlActions {
             switch (op) {
                 case REMOVE -> {
                     g.removeUndirectedEdge(from, to);
-                    blockedEdges.remove(GraphPanel.edgeKey(from, to));
+                    blockedEdges.remove(Graph.edgeKey(from, to));
                     refreshGraphUI(false);
                 }
                 case ADD -> {
@@ -228,7 +225,6 @@ public class ControlActions {
         rp.show("Edge (" + from.id() + "-" + to.id() + ") updated.");
     }
 
-
     public void blockTemporary() {
         NodePair pair = askEdgeNodes("Block road FROM node:", "Block road TO node:");
         if (pair == null) return;
@@ -238,7 +234,7 @@ public class ControlActions {
             return;
         }
 
-        blockedEdges.add(GraphPanel.edgeKey(pair.from(), pair.to()));
+        blockedEdges.add(Graph.edgeKey(pair.from(), pair.to()));
         refreshGraphUI(false);
 
         rp.show("Blocked: " + pair.from().id() + "-" + pair.to().id() + "\nAll blocked roads: " + blockedEdges);
@@ -267,11 +263,10 @@ public class ControlActions {
         Node<String> b = getExistingNode(p[1].trim(), "Node not found in: " + s);
         if (a == null || b == null) return;
 
-        blockedEdges.remove(GraphPanel.edgeKey(a, b));
+        blockedEdges.remove(Graph.edgeKey(a, b));
         refreshGraphUI(false);
         rp.show("Unblocked: " + s + "\nAll blocked roads: " + blockedEdges);
     }
-
 
     public void loadFromFile() {
         JFileChooser fc = new JFileChooser();
@@ -303,7 +298,6 @@ public class ControlActions {
             rp.show("Save failed: " + ex.getMessage());
         }
     }
-
 
     private void refreshGraphUI(boolean clearPath) {
         gp.setBlockedEdges(blockedEdges);
@@ -347,7 +341,7 @@ public class ControlActions {
     private String calculationString(List<Node<String>> path) {
         List<Integer> weights = new ArrayList<>();
         for (int i = 0; i < path.size() - 1; i++) {
-            Edge<Node<String>> e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
+            Edge<String> e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
             if (e != null) weights.add((int) e.getWeight());
         }
         return joinWithPlus(weights);
