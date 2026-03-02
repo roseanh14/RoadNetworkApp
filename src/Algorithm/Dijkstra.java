@@ -53,7 +53,7 @@ public class Dijkstra {
                 if (blocker.blocked(cur, to)) continue;
                 if (visited.contains(to)) continue;
 
-                double w = ((Number) e.data()).doubleValue();
+                double w = e.data().doubleValue();
                 double nd = dist.get(cur) + w;
 
                 if (nd < dist.getOrDefault(to, Double.MAX_VALUE)) {
@@ -81,7 +81,7 @@ public class Dijkstra {
         double total = 0;
         for (int i = 0; i < path.size() - 1; i++) {
             var e = findEdge(graph, path.get(i), path.get(i + 1));
-            if (e != null) total += ((Number) e.data()).doubleValue();
+            if (e != null) total += e.data().doubleValue();
         }
         return total;
     }

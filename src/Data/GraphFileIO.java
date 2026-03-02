@@ -56,10 +56,4 @@ public class GraphFileIO {
         }
     }
 
-    public static void saveCache(Graph<String, Point, Double> graph) throws IOException {
-        File f = new File(CACHE_FILE_NAME);
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(f))) {
-            oos.writeObject(graph);
-        }
-    }
 }

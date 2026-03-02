@@ -143,7 +143,7 @@ public class GraphPanel extends JPanel {
 
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
             g2.setColor(Color.DARK_GRAY);
-            g2.drawString(String.valueOf((int) Math.round((Double) e.data())), midX + 2, midY - 2);
+            g2.drawString(String.valueOf((int) Math.round(e.data())), midX + 2, midY - 2);
         }
     }
 
