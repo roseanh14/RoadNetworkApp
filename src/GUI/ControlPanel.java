@@ -1,9 +1,11 @@
 package GUI;
 
 import Model.Graph;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.Point;
 
 public class ControlPanel extends JPanel {
 
@@ -13,7 +15,7 @@ public class ControlPanel extends JPanel {
     private final JComboBox<String> end   = new JComboBox<>();
     private final ControlActions a;
 
-    public ControlPanel(Graph<String, Integer, Double> g, GraphPanel gp, ResultPanel rp) {
+    public ControlPanel(Graph<String, Point, Double> g, GraphPanel gp, ResultPanel rp) {
         this.a = new ControlActions(g, gp, rp, this);
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));

@@ -3,12 +3,11 @@ package GUI;
 import Algorithm.Dijkstra;
 import Algorithm.SuccessorVector;
 import Data.GraphFileIO;
-import Model.Edge;
 import Model.Graph;
-import Model.Node;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.Point;
 import java.io.File;
 import java.util.*;
 import java.util.List;
@@ -16,21 +15,19 @@ import java.util.List;
 public class ControlActions {
 
     public enum EdgeOp { EDIT_WEIGHT, ADD, REMOVE }
-
     private static final int ALT_LIMIT = 3;
 
-    private final Graph<String, Integer, Double> g;
+    private final Graph<String, Point, Double> g;
     private final GraphPanel gp;
     private final ResultPanel rp;
     private final JComponent parent;
 
-    // stored so fill() can be called after addNode / removeNode
     private JComboBox<String> startBox;
     private JComboBox<String> endBox;
 
     private final Set<String> blockedEdges = new HashSet<>();
 
-    public ControlActions(Graph<String, Integer, Double> g,
+    public ControlActions(Graph<String, Point, Double> g,
                           GraphPanel gp,
                           ResultPanel rp,
                           JComponent parent) {
@@ -45,22 +42,22 @@ public class ControlActions {
         this.endBox   = end;
         start.removeAllItems();
         end.removeAllItems();
-        for (Node<String, Integer> n : g.nodes()) {
-            start.addItem(String.valueOf(n.id()));
-            end.addItem(String.valueOf(n.id()));
+        for (var v : g.vertices()) {
+            start.addItem(String.valueOf(v.key()));
+            end.addItem(String.valueOf(v.key()));
         }
     }
 
     public void routes(String startId, String endId) {
-        Node<String, Integer> start = getExistingNode(startId, "Start node not found.");
-        Node<String, Integer> end   = getExistingNode(endId,   "End node not found.");
+        var start = getExistingVertex(startId, "Start node not found.");
+        var end   = getExistingVertex(endId,   "End node not found.");
         if (start == null || end == null) return;
 
-        List<Node<String, Integer>> base = Dijkstra.shortestPath(g, start, end);
+        List<Graph<String, Point, Double>.Vertex> base = Dijkstra.shortestPath(g, start, end);
         if (base.isEmpty()) { rp.show("No path found."); return; }
         double baseDist = Dijkstra.pathDistance(g, base);
 
-        List<Node<String, Integer>> current = shortestPathWithBlocks(start, end, blockedEdges);
+        List<Graph<String, Point, Double>.Vertex> current = shortestPathWithBlocks(start, end, blockedEdges);
         if (current.isEmpty()) {
             rp.show("No path found (blocked roads may disconnect graph).");
             gp.highlightPath(List.of());
@@ -77,12 +74,13 @@ public class ControlActions {
         appendRouteBlock(sb, base, baseDist);
 
         sb.append("\n=== SUCCESSOR VECTOR (Tab.1) ===\n");
-        // build all paths (base + alternatives) for the merged successor vector
-        List<List<Node<String, Integer>>> allPaths = new ArrayList<>();
+        List<List<Graph<String, Point, Double>.Vertex>> allPaths = new ArrayList<>();
         allPaths.add(base);
+
         List<Alt> altsForVector = topAlternativesFromBase(start, end, base, blockedEdges);
         for (Alt alt : altsForVector) allPaths.add(alt.path());
-        Map<Node<String, Integer>, List<Node<String, Integer>>> sv = SuccessorVector.buildAll(allPaths);
+
+        var sv = SuccessorVector.buildAll(allPaths);
         sb.append(SuccessorVector.toTableStringAll(sv)).append("\n");
 
         if (!blockedEdges.isEmpty()) {
@@ -93,18 +91,14 @@ public class ControlActions {
 
         sb.append("\n=== ALTERNATIVE ROUTES (TOP ").append(ALT_LIMIT).append(") ===\n\n");
 
-        // alternatives are now computed from base, not current
         List<Alt> alts = topAlternativesFromBase(start, end, base, blockedEdges);
-        if (alts.isEmpty()) {
-            sb.append("No alternative routes found.\n");
-        } else {
-            appendAlternatives(sb, alts, currentDist);
-        }
+        if (alts.isEmpty()) sb.append("No alternative routes found.\n");
+        else appendAlternatives(sb, alts, currentDist);
 
         rp.show(sb.toString());
     }
 
-    private record Alt(String blockedKey, List<Node<String, Integer>> path, double distance) {}
+    private record Alt(String blockedKey, List<Graph<String, Point, Double>.Vertex> path, double distance) {}
 
     private void appendAlternatives(StringBuilder sb, List<Alt> alts, double currentDist) {
         int idx = 1;
@@ -117,17 +111,21 @@ public class ControlActions {
         }
     }
 
-    private List<Node<String, Integer>> shortestPathWithBlocks(Node<String, Integer> start,
-                                                               Node<String, Integer> end,
-                                                               Set<String> blocks) {
-        return Dijkstra.shortestPath(g, start, end, (a, b) -> blocks.contains(Graph.edgeKey(a, b)));
+    private List<Graph<String, Point, Double>.Vertex> shortestPathWithBlocks(
+            Graph<String, Point, Double>.Vertex start,
+            Graph<String, Point, Double>.Vertex end,
+            Set<String> blocks) {
+
+        return Dijkstra.shortestPath(g, start, end,
+                (a, b) -> blocks.contains(Graph.edgeKey(a, b)));
     }
 
-    // alternatives are now generated by blocking edges on BASE, not current
-    private List<Alt> topAlternativesFromBase(Node<String, Integer> start,
-                                              Node<String, Integer> end,
-                                              List<Node<String, Integer>> base,
-                                              Set<String> globalBlocks) {
+    private List<Alt> topAlternativesFromBase(
+            Graph<String, Point, Double>.Vertex start,
+            Graph<String, Point, Double>.Vertex end,
+            List<Graph<String, Point, Double>.Vertex> base,
+            Set<String> globalBlocks) {
+
         if (base.isEmpty()) return List.of();
         String baseKey = pathKey(base);
 
@@ -141,7 +139,7 @@ public class ControlActions {
             Set<String> twoBlocks = new HashSet<>(globalBlocks);
             twoBlocks.add(extraBlock);
 
-            List<Node<String, Integer>> altPath = shortestPathWithBlocks(start, end, twoBlocks);
+            var altPath = shortestPathWithBlocks(start, end, twoBlocks);
             if (altPath.isEmpty()) continue;
 
             String k = pathKey(altPath);
@@ -159,14 +157,13 @@ public class ControlActions {
         String id = ask("ID of new node:");
         if (id == null) return;
 
-        if (g.getNodeById(id) != null) {
+        if (g.getVertex(id) != null) {
             rp.show("Node '" + id + "' already exists.");
             return;
         }
 
-        gp.beginAddNode(id);
-        // after node is placed in GraphPanel, refresh combos so it appears as an option
-        gp.setOnNodeAdded(() -> {
+        gp.beginAddVertex(id);
+        gp.setOnVertexAdded(() -> {
             if (startBox != null && endBox != null) fill(startBox, endBox);
         });
         rp.show("Click in the graph to place node '" + id + "'.");
@@ -176,43 +173,41 @@ public class ControlActions {
         String id = ask("Search for node ID:");
         if (id == null) return;
 
-        Node<String, Integer> n = g.getNodeById(id);
-        if (n == null) {
-            gp.setSelectedNode(null);
+        var v = g.getVertex(id);
+        if (v == null) {
+            gp.setSelectedVertex(null);
             rp.show("Node not found: " + id);
             return;
         }
 
-        gp.setSelectedNode(n);
+        gp.setSelectedVertex(v);
         rp.show("Node found and selected: " + id);
     }
 
     public void removeNode() {
-        Node<String, Integer> sel = gp.getSelectedNode();
-        String id = (sel != null) ? String.valueOf(sel.id()) : ask("ID of node to remove:");
+        var sel = gp.getSelectedVertex();
+        String id = (sel != null) ? String.valueOf(sel.key()) : ask("ID of node to remove:");
         if (id == null) return;
 
-        Node<String, Integer> n = getExistingNode(id, "Node not found: " + id);
-        if (n == null) return;
+        var v = getExistingVertex(id, "Node not found: " + id);
+        if (v == null) return;
 
-        if (!g.removeNode(n)) { rp.show("Remove failed: " + id); return; }
+        if (!g.removeVertex(v)) { rp.show("Remove failed: " + id); return; }
 
         blockedEdges.removeIf(k -> k.startsWith(id + "-") || k.endsWith("-" + id));
-        gp.setSelectedNode(null);
+        gp.setSelectedVertex(null);
         refreshGraphUI(true);
 
-        // refresh combos so the deleted node no longer appears as an option
         if (startBox != null && endBox != null) fill(startBox, endBox);
-
         rp.show("Node removed: " + id);
     }
 
     public void edge(EdgeOp op) {
-        NodePair pair = askEdgeNodes("From node ID:", "To node ID:");
+        VertexPair pair = askEdgeVertices("From node ID:", "To node ID:");
         if (pair == null) return;
 
-        Node<String, Integer> from = pair.from();
-        Node<String, Integer> to   = pair.to();
+        var from = pair.from();
+        var to   = pair.to();
 
         try {
             switch (op) {
@@ -228,7 +223,7 @@ public class ControlActions {
                 }
                 case EDIT_WEIGHT -> {
                     double w = Double.parseDouble(req("New weight (minutes):"));
-                    g.setUndirectedEdgeWeight(from, to, w);
+                    g.setUndirectedEdgeData(from, to, w);
                     refreshGraphUI(false);
                 }
             }
@@ -237,21 +232,21 @@ public class ControlActions {
             return;
         }
 
-        rp.show("Edge (" + from.id() + "-" + to.id() + ") updated.");
+        rp.show("Edge (" + from.key() + "-" + to.key() + ") updated.");
     }
 
     public void blockTemporary() {
-        NodePair pair = askEdgeNodes("Block road FROM node:", "Block road TO node:");
+        VertexPair pair = askEdgeVertices("Block road FROM node:", "Block road TO node:");
         if (pair == null) return;
 
         if (Dijkstra.findEdge(g, pair.from(), pair.to()) == null) {
-            rp.show("This road does not exist: " + pair.from().id() + "-" + pair.to().id());
+            rp.show("This road does not exist: " + pair.from().key() + "-" + pair.to().key());
             return;
         }
 
         blockedEdges.add(Graph.edgeKey(pair.from(), pair.to()));
         refreshGraphUI(false);
-        rp.show("Blocked: " + pair.from().id() + "-" + pair.to().id()
+        rp.show("Blocked: " + pair.from().key() + "-" + pair.to().key()
                 + "\nAll blocked roads: " + blockedEdges);
     }
 
@@ -271,8 +266,8 @@ public class ControlActions {
         String[] p = s.split("-");
         if (p.length != 2) { rp.show("Invalid format. Use A-B (example: k-s)."); return; }
 
-        Node<String, Integer> a = getExistingNode(p[0].trim(), "Node not found in: " + s);
-        Node<String, Integer> b = getExistingNode(p[1].trim(), "Node not found in: " + s);
+        var a = getExistingVertex(p[0].trim(), "Node not found in: " + s);
+        var b = getExistingVertex(p[1].trim(), "Node not found in: " + s);
         if (a == null || b == null) return;
 
         blockedEdges.remove(Graph.edgeKey(a, b));
@@ -317,28 +312,29 @@ public class ControlActions {
         gp.repaint();
     }
 
-    private record NodePair(Node<String, Integer> from, Node<String, Integer> to) {}
+    private record VertexPair(Graph<String, Point, Double>.Vertex from,
+                              Graph<String, Point, Double>.Vertex to) {}
 
-    private NodePair askEdgeNodes(String qFrom, String qTo) {
+    private VertexPair askEdgeVertices(String qFrom, String qTo) {
         String fromId = ask(qFrom);
         String toId   = ask(qTo);
         if (fromId == null || toId == null) return null;
 
-        Node<String, Integer> from = getExistingNode(fromId, "Node not found: " + fromId);
-        Node<String, Integer> to   = getExistingNode(toId,   "Node not found: " + toId);
+        var from = getExistingVertex(fromId, "Node not found: " + fromId);
+        var to   = getExistingVertex(toId,   "Node not found: " + toId);
         if (from == null || to == null) return null;
 
-        return new NodePair(from, to);
+        return new VertexPair(from, to);
     }
 
-    private Node<String, Integer> getExistingNode(String id, String errorMsg) {
+    private Graph<String, Point, Double>.Vertex getExistingVertex(String id, String errorMsg) {
         if (id == null) return null;
-        Node<String, Integer> n = g.getNodeById(id);
-        if (n == null) rp.show(errorMsg);
-        return n;
+        var v = g.getVertex(id);
+        if (v == null) rp.show(errorMsg);
+        return v;
     }
 
-    private void appendRouteBlock(StringBuilder sb, List<Node<String, Integer>> path, double dist) {
+    private void appendRouteBlock(StringBuilder sb, List<Graph<String, Point, Double>.Vertex> path, double dist) {
         sb.append("Path:\n").append(pathToString(path)).append("\n\n");
         sb.append("Calculation:\n").append(calculationString(path))
                 .append(" = ").append((int) dist).append("\n\n");
@@ -350,11 +346,11 @@ public class ControlActions {
                 .append(" = ").append((int)(a - b)).append(" min\n\n");
     }
 
-    private String calculationString(List<Node<String, Integer>> path) {
+    private String calculationString(List<Graph<String, Point, Double>.Vertex> path) {
         List<Integer> weights = new ArrayList<>();
         for (int i = 0; i < path.size() - 1; i++) {
-            Edge<String, Integer, Double> e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
-            if (e != null) weights.add((int) Math.round(e.getWeight()));
+            var e = Dijkstra.findEdge(g, path.get(i), path.get(i + 1));
+            if (e != null) weights.add((int) Math.round(e.data()));
         }
         return joinWithPlus(weights);
     }
@@ -368,20 +364,20 @@ public class ControlActions {
         return sb.toString();
     }
 
-    private static String pathToDelimited(List<Node<String, Integer>> path, String delimiter) {
+    private static String pathToDelimited(List<Graph<String, Point, Double>.Vertex> path, String delimiter) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < path.size(); i++) {
-            sb.append(path.get(i).id());
+            sb.append(path.get(i).key());
             if (i < path.size() - 1) sb.append(delimiter);
         }
         return sb.toString();
     }
 
-    private String pathToString(List<Node<String, Integer>> path) {
+    private String pathToString(List<Graph<String, Point, Double>.Vertex> path) {
         return pathToDelimited(path, " -> ");
     }
 
-    private static String pathKey(List<Node<String, Integer>> path) {
+    private static String pathKey(List<Graph<String, Point, Double>.Vertex> path) {
         return pathToDelimited(path, "->");
     }
 

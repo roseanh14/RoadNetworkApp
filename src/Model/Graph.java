@@ -4,105 +4,152 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
 
-public class Graph<ID, C extends Number, W extends Number> implements Serializable {
+public class Graph<KV, DV, DE> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @FunctionalInterface
-    public interface EdgeFactory<ID, C extends Number, W extends Number> extends Serializable {
-        Edge<ID, C, W> create(Node<ID, C> from, Node<ID, C> to, W weight);
-    }
+    public class Vertex implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-    private final EdgeFactory<ID, C, W> edgeFactory;
+        private final KV key;
+        private final DV data;
 
-    private final Map<ID, Node<ID, C>> nodes = new LinkedHashMap<>();
-    private final Map<Node<ID, C>, List<Edge<ID, C, W>>> adj = new HashMap<>();
+        private final List<Edge> edges = new ArrayList<>();
 
-    public Graph(EdgeFactory<ID, C, W> edgeFactory) {
-        this.edgeFactory = edgeFactory;
-    }
-
-    public Collection<Node<ID, C>> nodes() {
-        return nodes.values();
-    }
-
-    public Collection<Edge<ID, C, W>> edges() {
-        List<Edge<ID, C, W>> all = new ArrayList<>();
-        for (List<Edge<ID, C, W>> list : adj.values()) all.addAll(list);
-        return all;
-    }
-
-    public List<Edge<ID, C, W>> edgesFrom(Node<ID, C> node) {
-        return adj.getOrDefault(node, List.of());
-    }
-
-    public Node<ID, C> getNodeById(ID id) {
-        return nodes.get(id);
-    }
-
-    public void addNode(Node<ID, C> node) {
-        if (node == null) return;
-        nodes.put(node.id(), node);
-        adj.putIfAbsent(node, new ArrayList<>());
-    }
-
-    public boolean removeNode(Node<ID, C> node) {
-        if (node == null) return false;
-        if (!nodes.containsKey(node.id())) return false;
-
-        adj.remove(node);
-
-        for (List<Edge<ID, C, W>> list : adj.values()) {
-            list.removeIf(e -> e.getTo().equals(node) || e.getFrom().equals(node));
+        private Vertex(KV key, DV data) {
+            this.key = key;
+            this.data = data;
         }
 
-        nodes.remove(node.id());
+        public KV key() { return key; }
+        public DV data() { return data; }
+
+        public List<Edge> edges() { return Collections.unmodifiableList(edges); }
+
+        @Override public String toString() { return String.valueOf(key); }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Graph<?, ?, ?>.Vertex v)) return false;
+            return Objects.equals(key, v.key());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(key);
+        }
+    }
+
+    public class Edge implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        private final Vertex from;
+        private final Vertex to;
+        private DE data;
+
+        private Edge(Vertex from, Vertex to, DE data) {
+            this.from = from;
+            this.to = to;
+            this.data = data;
+        }
+
+        public Vertex from() { return from; }
+        public Vertex to() { return to; }
+
+        public DE data() { return data; }
+        public void setData(DE data) { this.data = data; }
+
+        @Override public String toString() {
+            return from + "->" + to + " (" + data + ")";
+        }
+    }
+
+    private final Map<KV, Vertex> vertices = new LinkedHashMap<>();
+
+    public Collection<Vertex> vertices() {
+        return vertices.values();
+    }
+
+    public Vertex getVertex(KV key) {
+        return vertices.get(key);
+    }
+
+    public void addVertex(KV key, DV data) {
+        if (key == null) return;
+        Vertex v = vertices.get(key);
+        if (v != null) return;
+        v = new Vertex(key, data);
+        vertices.put(key, v);
+    }
+
+    public boolean removeVertex(Vertex v) {
+        if (v == null) return false;
+        if (!vertices.containsKey(v.key())) return false;
+
+        for (Vertex other : vertices.values()) {
+            other.edges.removeIf(e -> e.to.equals(v) || e.from.equals(v));
+        }
+        vertices.remove(v.key());
         return true;
     }
 
-    public void addUndirectedEdge(Node<ID, C> a, Node<ID, C> b, W w) {
-        if (a == null || b == null) return;
-        addDirectedEdge(a, b, w);
-        addDirectedEdge(b, a, w);
+    public List<Edge> edgesFrom(Vertex v) {
+        if (v == null) return List.of();
+        return v.edges();
     }
 
-    private void addDirectedEdge(Node<ID, C> from, Node<ID, C> to, W w) {
-        adj.putIfAbsent(from, new ArrayList<>());
-        List<Edge<ID, C, W>> list = adj.get(from);
+    public Collection<Edge> edges() {
+        List<Edge> all = new ArrayList<>();
+        for (Vertex v : vertices.values()) {
+            all.addAll(v.edges);
+        }
+        return all;
+    }
 
-        for (Edge<ID, C, W> e : list) {
-            if (e.getTo().equals(to)) {
-                e.setWeight(w);
+
+    public void addDirectedEdge(Vertex from, Vertex to, DE data) {
+        if (from == null || to == null) return;
+
+
+        for (Edge e : from.edges) {
+            if (e.to.equals(to)) {
+                e.setData(data);
                 return;
             }
         }
-        list.add(edgeFactory.create(from, to, w));
+        from.edges.add(new Edge(from, to, data));
     }
 
-    public void removeUndirectedEdge(Node<ID, C> a, Node<ID, C> b) {
+    public void addUndirectedEdge(Vertex a, Vertex b, DE data) {
+        addDirectedEdge(a, b, data);
+        addDirectedEdge(b, a, data);
+    }
+
+    public void removeDirectedEdge(Vertex from, Vertex to) {
+        if (from == null || to == null) return;
+        from.edges.removeIf(e -> e.to.equals(to));
+    }
+
+    public void removeUndirectedEdge(Vertex a, Vertex b) {
         removeDirectedEdge(a, b);
         removeDirectedEdge(b, a);
     }
 
-    private void removeDirectedEdge(Node<ID, C> from, Node<ID, C> to) {
-        List<Edge<ID, C, W>> list = adj.get(from);
-        if (list == null) return;
-        list.removeIf(e -> e.getTo().equals(to));
+    public void setUndirectedEdgeData(Vertex a, Vertex b, DE data) {
+        addUndirectedEdge(a, b, data);
     }
 
-    public void setUndirectedEdgeWeight(Node<ID, C> a, Node<ID, C> b, W w) {
-        addUndirectedEdge(a, b, w);
-    }
 
-    public static <ID, C extends Number> boolean isBlocked(Node<ID, C> a, Node<ID, C> b,
-                                                           Node<ID, C> bf, Node<ID, C> bt) {
-        if (bf == null || bt == null) return false;
-        return (a.equals(bf) && b.equals(bt)) || (a.equals(bt) && b.equals(bf));
-    }
-
-    public static <ID, C extends Number> String edgeKey(Node<ID, C> a, Node<ID, C> b) {
-        String x = String.valueOf(a.id());
-        String y = String.valueOf(b.id());
+    public static <KV> String edgeKey(KV a, KV b) {
+        String x = String.valueOf(a);
+        String y = String.valueOf(b);
         return (x.compareTo(y) <= 0) ? x + "-" + y : y + "-" + x;
+    }
+
+    public static <KV, DV, DE> String edgeKey(Graph<KV, DV, DE>.Vertex a, Graph<KV, DV, DE>.Vertex b) {
+        return edgeKey(a.key(), b.key());
     }
 }

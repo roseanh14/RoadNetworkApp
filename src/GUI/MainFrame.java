@@ -6,13 +6,14 @@ import Model.Graph;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.Point;
 
 public class MainFrame extends JFrame {
 
     public MainFrame() {
         super("RoadNetworkApp");
 
-        Graph<String, Integer, Double> graph = GraphFileIO.loadCache();
+        Graph<String, Point, Double> graph = GraphFileIO.loadCache();
         if (graph == null) graph = GraphData.buildGraph();
 
         GraphPanel graphPanel = new GraphPanel(graph);
