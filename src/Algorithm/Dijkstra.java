@@ -33,14 +33,7 @@ public class Dijkstra {
         public double getDistance() { return distance; }
     }
 
-    private static class PQItem<ID, C extends Number> {
-        final Node<ID, C> node;
-        final double dist;
-
-        PQItem(Node<ID, C> node, double dist) {
-            this.node = node;
-            this.dist = dist;
-        }
+    private record PQItem<ID, C extends Number>(Node<ID, C> node, double dist) {
     }
 
     public static <ID, C extends Number, W extends Number>

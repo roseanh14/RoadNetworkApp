@@ -19,6 +19,7 @@ public class GraphPanel extends JPanel {
     private Node<String, Integer> selectedNode = null;
     private Set<String> blockedEdges = new HashSet<>();
     private String pendingAddNodeId = null;
+    private Runnable onNodeAdded;                          // added
 
     private static final int NODE_RADIUS = 12;
 
@@ -48,6 +49,7 @@ public class GraphPanel extends JPanel {
 
                     graph.addNode(new Node<>(id, gx, gy));
                     selectedNode = graph.getNodeById(id);
+                    if (onNodeAdded != null) onNodeAdded.run();  // added
                     repaint();
                     return;
                 }
@@ -58,6 +60,10 @@ public class GraphPanel extends JPanel {
                 }
             }
         });
+    }
+
+    public void setOnNodeAdded(Runnable callback) {     // added
+        this.onNodeAdded = callback;
     }
 
     public void highlightPath(List<Node<String, Integer>> path) {
@@ -125,7 +131,7 @@ public class GraphPanel extends JPanel {
             String key = Graph.edgeKey(from, to);
             if (!drawn.add(key)) continue;
 
-            boolean onPath = isOnPath(from, to);
+            boolean onPath    = isOnPath(from, to);
             boolean isBlocked = blockedEdges.contains(key);
 
             if (isBlocked) g2.setColor(Color.RED);
@@ -158,7 +164,7 @@ public class GraphPanel extends JPanel {
         FontMetrics fm = g2.getFontMetrics();
 
         for (Node<String, Integer> node : graph.nodes()) {
-            boolean onPath = highlightedPath.contains(node);
+            boolean onPath     = highlightedPath.contains(node);
             boolean isSelected = (selectedNode != null && selectedNode.equals(node));
 
             int cx = node.x();
