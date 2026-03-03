@@ -8,6 +8,7 @@ public class Graph<KV, DV, DE> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    //private
     public class Vertex implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
@@ -42,6 +43,7 @@ public class Graph<KV, DV, DE> implements Serializable {
         }
     }
 
+    //private
     public class Edge implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
@@ -69,6 +71,8 @@ public class Graph<KV, DV, DE> implements Serializable {
 
     private final Map<KV, Vertex> vertices = new LinkedHashMap<>();
 
+    //kolekce vsech klicu , ci dat , ne vertex
+    //navratova hodnota vertex opravit
     public Collection<Vertex> vertices() {
         return vertices.values();
     }
@@ -110,6 +114,7 @@ public class Graph<KV, DV, DE> implements Serializable {
     }
 
 
+    // posilam klic vrcholu
     public void addDirectedEdge(Vertex from, Vertex to, DE data) {
         if (from == null || to == null) return;
 
@@ -123,6 +128,7 @@ public class Graph<KV, DV, DE> implements Serializable {
         from.edges.add(new Edge(from, to, data));
     }
 
+    // posilam klic vrcholu
     public void addUndirectedEdge(Vertex a, Vertex b, DE data) {
         addDirectedEdge(a, b, data);
         addDirectedEdge(b, a, data);
@@ -153,3 +159,5 @@ public class Graph<KV, DV, DE> implements Serializable {
         return edgeKey(a.key(), b.key());
     }
 }
+
+    //vertex a edge uvnitr grafu
