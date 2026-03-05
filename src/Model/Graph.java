@@ -72,6 +72,10 @@ public class Graph<KV, DV, DE> implements Serializable {
 
     private final Map<KV, Vertex> vertices = new LinkedHashMap<>();
 
+    public void clear() {
+        vertices.clear();
+    }
+
     public Collection<VertexView<KV, DV>> vertices() {
         List<VertexView<KV, DV>> out = new ArrayList<>(vertices.size());
         for (Vertex v : vertices.values()) {

@@ -288,14 +288,22 @@ public class ControlActions {
 
     public void loadFromFile() {
         JFileChooser fc = new JFileChooser();
-        fc.setDialogTitle("Load edges.csv");
+        fc.setDialogTitle("Load graph.csv");
         fc.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
         if (fc.showOpenDialog(parent) != JFileChooser.APPROVE_OPTION) return;
 
         File f = fc.getSelectedFile();
         try {
+            g.clear();
             GraphFileIO.loadGraphCsv(g, f);
-            refreshGraphUI(false);
+
+            blockedEdges.clear();
+            gp.setSelectedVertexKey(null);
+
+            refreshGraphUI(true);
+
+            if (startBox != null && endBox != null) fill(startBox, endBox);
+
             rp.show("Loaded: " + f.getName());
         } catch (Exception ex) {
             rp.show("Load failed: " + ex.getMessage());

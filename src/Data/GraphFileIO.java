@@ -21,7 +21,7 @@ public class GraphFileIO {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                String[] p = line.split(",");
+                String[] p = line.split(",", -1);
                 if (p.length < 1) continue;
 
                 String type = p[0].trim();
