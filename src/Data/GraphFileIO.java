@@ -10,28 +10,56 @@ public class GraphFileIO {
 
     private static final String CACHE_FILE_NAME = "graph.cache";
 
-    public static void loadEdgesCsv(Graph<String, Point, Double> graph, File file) throws IOException {
+    public static void loadGraphCsv(Graph<String, Point, Double> graph, File file) throws IOException {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
 
-            String line = br.readLine(); // header
+            String line = br.readLine();
             if (line == null) return;
 
             while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty()) continue;
+                line = line.trim();
+                if (line.isEmpty()) continue;
 
                 String[] p = line.split(",");
-                if (p.length < 3) continue;
+                if (p.length < 1) continue;
 
-                String fromId = p[0].trim();
-                String toId   = p[1].trim();
-                double w      = Double.parseDouble(p[2].trim());
+                String type = p[0].trim();
+                if (type.equalsIgnoreCase("V")) {
+                    if (p.length < 4) continue;
 
-                var from = graph.getVertex(fromId);
-                var to   = graph.getVertex(toId);
-                if (from == null || to == null) continue;
+                    String id = p[1].trim();
+                    if (id.isEmpty()) continue;
 
-                graph.setUndirectedEdgeData(from, to, w);
+                    int x, y;
+                    try {
+                        x = Integer.parseInt(p[2].trim());
+                        y = Integer.parseInt(p[3].trim());
+                    } catch (NumberFormatException ex) {
+                        continue;
+                    }
+
+                    graph.putVertex(id, new Point(x, y));
+                }
+                else if (type.equalsIgnoreCase("E")) {
+                    if (p.length < 7) continue;
+
+                    String from = p[4].trim();
+                    String to   = p[5].trim();
+
+                    if (from.isEmpty() || to.isEmpty()) continue;
+
+                    double w;
+                    try {
+                        w = Double.parseDouble(p[6].trim());
+                    } catch (NumberFormatException ex) {
+                        continue;
+                    }
+
+                    if (graph.getVertex(from) == null || graph.getVertex(to) == null) continue;
+
+                    graph.setUndirectedEdgeData(from, to, w);
+                }
             }
         }
     }
@@ -55,5 +83,4 @@ public class GraphFileIO {
             return null;
         }
     }
-
 }

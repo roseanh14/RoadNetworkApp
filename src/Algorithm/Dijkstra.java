@@ -7,92 +7,97 @@ import java.util.*;
 public class Dijkstra {
 
     @FunctionalInterface
-    public interface EdgeBlocker<KV, DV, DE> {
-        boolean blocked(Graph<KV, DV, DE>.Vertex from, Graph<KV, DV, DE>.Vertex to);
+    public interface EdgeBlocker<KV> {
+        boolean blocked(KV fromKey, KV toKey);
     }
 
-    private record PQItem<KV, DV, DE>(Graph<KV, DV, DE>.Vertex v, double dist) {}
+    private record PQItem<KV>(KV key, double dist) {}
 
     public static <KV, DV, DE extends Number>
-    List<Graph<KV, DV, DE>.Vertex> shortestPath(Graph<KV, DV, DE> graph,
-                                                Graph<KV, DV, DE>.Vertex start,
-                                                Graph<KV, DV, DE>.Vertex end) {
-        return shortestPath(graph, start, end, (a, b) -> false);
+    List<KV> shortestPath(Graph<KV, DV, DE> graph, KV startKey, KV endKey) {
+        return shortestPath(graph, startKey, endKey, (a, b) -> false);
     }
 
     public static <KV, DV, DE extends Number>
-    List<Graph<KV, DV, DE>.Vertex> shortestPath(Graph<KV, DV, DE> graph,
-                                                Graph<KV, DV, DE>.Vertex start,
-                                                Graph<KV, DV, DE>.Vertex end,
-                                                EdgeBlocker<KV, DV, DE> blocker) {
+    List<KV> shortestPath(Graph<KV, DV, DE> graph,
+                          KV startKey,
+                          KV endKey,
+                          EdgeBlocker<KV> blocker) {
 
-        Map<Graph<KV, DV, DE>.Vertex, Double> dist = new HashMap<>();
-        Map<Graph<KV, DV, DE>.Vertex, Graph<KV, DV, DE>.Vertex> prev = new HashMap<>();
+        if (graph.getVertex(startKey) == null || graph.getVertex(endKey) == null) {
+            return new ArrayList<>();
+        }
 
-        for (var v : graph.vertices()) dist.put(v, Double.MAX_VALUE);
-        dist.put(start, 0.0);
+        Map<KV, Double> dist = new HashMap<>();
+        Map<KV, KV> prev = new HashMap<>();
 
-        PriorityQueue<PQItem<KV, DV, DE>> pq =
+        for (var v : graph.vertices()) {
+            dist.put(v.key(), Double.MAX_VALUE);
+        }
+        dist.put(startKey, 0.0);
+
+        PriorityQueue<PQItem<KV>> pq =
                 new PriorityQueue<>(Comparator.comparingDouble(PQItem::dist));
-        pq.add(new PQItem<>(start, 0.0));
+        pq.add(new PQItem<>(startKey, 0.0));
 
-        Set<Graph<KV, DV, DE>.Vertex> visited = new HashSet<>();
+        Set<KV> visited = new HashSet<>();
 
         while (!pq.isEmpty()) {
             var item = pq.poll();
-            var cur = item.v();
+            var curKey = item.key();
 
-            if (!Objects.equals(item.dist(), dist.getOrDefault(cur, Double.MAX_VALUE))) continue;
-            if (!visited.add(cur)) continue;
+            if (!Objects.equals(item.dist(), dist.getOrDefault(curKey, Double.MAX_VALUE))) continue;
+            if (!visited.add(curKey)) continue;
 
-            if (cur.equals(end)) break;
+            if (Objects.equals(curKey, endKey)) break;
 
-            for (var e : graph.edgesFrom(cur)) {
-                var to = e.to();
+            for (var e : graph.edgesFrom(curKey)) {
+                KV toKey = e.toKey();
 
-                if (blocker.blocked(cur, to)) continue;
-                if (visited.contains(to)) continue;
+                if (blocker.blocked(curKey, toKey)) continue;
+                if (visited.contains(toKey)) continue;
 
                 double w = e.data().doubleValue();
-                double nd = dist.get(cur) + w;
+                double nd = dist.get(curKey) + w;
 
-                if (nd < dist.getOrDefault(to, Double.MAX_VALUE)) {
-                    dist.put(to, nd);
-                    prev.put(to, cur);
-                    pq.add(new PQItem<>(to, nd));
+                if (nd < dist.getOrDefault(toKey, Double.MAX_VALUE)) {
+                    dist.put(toKey, nd);
+                    prev.put(toKey, curKey);
+                    pq.add(new PQItem<>(toKey, nd));
                 }
             }
         }
 
-        List<Graph<KV, DV, DE>.Vertex> path = new ArrayList<>();
-        var step = end;
+        List<KV> path = new ArrayList<>();
+        KV step = endKey;
+
         while (step != null) {
             path.add(step);
             step = prev.get(step);
         }
         Collections.reverse(path);
 
-        if (path.isEmpty() || !path.get(0).equals(start)) return new ArrayList<>();
+        if (path.isEmpty() || !Objects.equals(path.get(0), startKey)) return new ArrayList<>();
         return path;
     }
 
     public static <KV, DV, DE extends Number>
-    double pathDistance(Graph<KV, DV, DE> graph, List<Graph<KV, DV, DE>.Vertex> path) {
+    double pathDistance(Graph<KV, DV, DE> graph, List<KV> path) {
         double total = 0;
+
         for (int i = 0; i < path.size() - 1; i++) {
-            var e = findEdge(graph, path.get(i), path.get(i + 1));
-            if (e != null) total += e.data().doubleValue();
+            DE w = findEdgeWeight(graph, path.get(i), path.get(i + 1));
+            if (w != null) total += w.doubleValue();
         }
         return total;
     }
 
     public static <KV, DV, DE>
-    Graph<KV, DV, DE>.Edge findEdge(Graph<KV, DV, DE> graph,
-                                    Graph<KV, DV, DE>.Vertex from,
-                                    Graph<KV, DV, DE>.Vertex to) {
-        for (var e : graph.edgesFrom(from)) {
-            if (e.to().equals(to)) return e;
+    DE findEdgeWeight(Graph<KV, DV, DE> graph, KV fromKey, KV toKey) {
+        for (var e : graph.edgesFrom(fromKey)) {
+            if (Objects.equals(e.toKey(), toKey)) return e.data();
         }
         return null;
     }
+
 }

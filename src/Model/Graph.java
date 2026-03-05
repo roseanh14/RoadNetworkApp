@@ -8,13 +8,16 @@ public class Graph<KV, DV, DE> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    //private
-    public class Vertex implements Serializable {
+    public record VertexView<KV, DV>(KV key, DV data) implements Serializable {}
+
+    public record EdgeView<KV, DE>(KV fromKey, KV toKey, DE data) implements Serializable {}
+
+    private class Vertex implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
 
         private final KV key;
-        private final DV data;
+        private DV data;
 
         private final List<Edge> edges = new ArrayList<>();
 
@@ -23,10 +26,9 @@ public class Graph<KV, DV, DE> implements Serializable {
             this.data = data;
         }
 
-        public KV key() { return key; }
-        public DV data() { return data; }
-
-        public List<Edge> edges() { return Collections.unmodifiableList(edges); }
+        private KV getKey() { return key; }
+        private DV getData() { return data; }
+        private void setData(DV data) { this.data = data; }
 
         @Override public String toString() { return String.valueOf(key); }
 
@@ -34,7 +36,7 @@ public class Graph<KV, DV, DE> implements Serializable {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof Graph<?, ?, ?>.Vertex v)) return false;
-            return Objects.equals(key, v.key());
+            return Objects.equals(key, v.key);
         }
 
         @Override
@@ -43,8 +45,7 @@ public class Graph<KV, DV, DE> implements Serializable {
         }
     }
 
-    //private
-    public class Edge implements Serializable {
+    private class Edge implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
 
@@ -58,11 +59,11 @@ public class Graph<KV, DV, DE> implements Serializable {
             this.data = data;
         }
 
-        public Vertex from() { return from; }
-        public Vertex to() { return to; }
+        private Vertex getFrom() { return from; }
+        private Vertex getTo() { return to; }
 
-        public DE data() { return data; }
-        public void setData(DE data) { this.data = data; }
+        private DE getData() { return data; }
+        private void setData(DE data) { this.data = data; }
 
         @Override public String toString() {
             return from + "->" + to + " (" + data + ")";
@@ -71,56 +72,80 @@ public class Graph<KV, DV, DE> implements Serializable {
 
     private final Map<KV, Vertex> vertices = new LinkedHashMap<>();
 
-    //kolekce vsech klicu , ci dat , ne vertex
-    //navratova hodnota vertex opravit
-    public Collection<Vertex> vertices() {
-        return vertices.values();
+    public Collection<VertexView<KV, DV>> vertices() {
+        List<VertexView<KV, DV>> out = new ArrayList<>(vertices.size());
+        for (Vertex v : vertices.values()) {
+            out.add(new VertexView<>(v.getKey(), v.getData()));
+        }
+        return Collections.unmodifiableList(out);
     }
 
-    public Vertex getVertex(KV key) {
-        return vertices.get(key);
+    public DV getVertexData(KV key) {
+        Vertex v = vertices.get(key);
+        return (v == null) ? null : v.getData();
     }
 
-    public void addVertex(KV key, DV data) {
+    public VertexView<KV, DV> getVertex(KV key) {
+        Vertex v = vertices.get(key);
+        return (v == null) ? null : new VertexView<>(v.getKey(), v.getData());
+    }
+
+    public void putVertex(KV key, DV data) {
         if (key == null) return;
         Vertex v = vertices.get(key);
-        if (v != null) return;
-        v = new Vertex(key, data);
-        vertices.put(key, v);
+        if (v == null) {
+            vertices.put(key, new Vertex(key, data));
+        } else {
+            v.setData(data);
+        }
     }
 
-    public boolean removeVertex(Vertex v) {
+
+    public boolean removeVertex(KV key) {
+        if (key == null) return false;
+        Vertex v = vertices.get(key);
         if (v == null) return false;
-        if (!vertices.containsKey(v.key())) return false;
 
         for (Vertex other : vertices.values()) {
-            other.edges.removeIf(e -> e.to.equals(v) || e.from.equals(v));
+            other.edges.removeIf(e -> e.getTo().equals(v) || e.getFrom().equals(v));
         }
-        vertices.remove(v.key());
+
+        vertices.remove(key);
         return true;
     }
 
-    public List<Edge> edgesFrom(Vertex v) {
-        if (v == null) return List.of();
-        return v.edges();
-    }
+    public List<EdgeView<KV, DE>> edgesFrom(KV fromKey) {
+        Vertex from = vertices.get(fromKey);
+        if (from == null) return List.of();
 
-    public Collection<Edge> edges() {
-        List<Edge> all = new ArrayList<>();
-        for (Vertex v : vertices.values()) {
-            all.addAll(v.edges);
+        List<EdgeView<KV, DE>> out = new ArrayList<>();
+        for (Edge e : from.edges) {
+            out.add(new EdgeView<>(e.getFrom().getKey(), e.getTo().getKey(), e.getData()));
         }
-        return all;
+        return Collections.unmodifiableList(out);
+    }
+
+    public Collection<EdgeView<KV, DE>> edges() {
+        List<EdgeView<KV, DE>> out = new ArrayList<>();
+        for (Vertex v : vertices.values()) {
+            for (Edge e : v.edges) {
+                out.add(new EdgeView<>(e.getFrom().getKey(), e.getTo().getKey(), e.getData()));
+            }
+        }
+        return Collections.unmodifiableList(out);
     }
 
 
-    // posilam klic vrcholu
-    public void addDirectedEdge(Vertex from, Vertex to, DE data) {
+    public void addDirectedEdge(KV fromKey, KV toKey, DE data) {
+        if (fromKey == null || toKey == null) return;
+
+        Vertex from = vertices.get(fromKey);
+        Vertex to = vertices.get(toKey);
+
         if (from == null || to == null) return;
 
-
         for (Edge e : from.edges) {
-            if (e.to.equals(to)) {
+            if (e.getTo().equals(to)) {
                 e.setData(data);
                 return;
             }
@@ -128,36 +153,32 @@ public class Graph<KV, DV, DE> implements Serializable {
         from.edges.add(new Edge(from, to, data));
     }
 
-    // posilam klic vrcholu
-    public void addUndirectedEdge(Vertex a, Vertex b, DE data) {
-        addDirectedEdge(a, b, data);
-        addDirectedEdge(b, a, data);
+    public void addUndirectedEdge(KV aKey, KV bKey, DE data) {
+        addDirectedEdge(aKey, bKey, data);
+        addDirectedEdge(bKey, aKey, data);
     }
 
-    public void removeDirectedEdge(Vertex from, Vertex to) {
+    public void removeDirectedEdge(KV fromKey, KV toKey) {
+        if (fromKey == null || toKey == null) return;
+        Vertex from = vertices.get(fromKey);
+        Vertex to = vertices.get(toKey);
         if (from == null || to == null) return;
-        from.edges.removeIf(e -> e.to.equals(to));
+
+        from.edges.removeIf(e -> e.getTo().equals(to));
     }
 
-    public void removeUndirectedEdge(Vertex a, Vertex b) {
-        removeDirectedEdge(a, b);
-        removeDirectedEdge(b, a);
+    public void removeUndirectedEdge(KV aKey, KV bKey) {
+        removeDirectedEdge(aKey, bKey);
+        removeDirectedEdge(bKey, aKey);
     }
 
-    public void setUndirectedEdgeData(Vertex a, Vertex b, DE data) {
-        addUndirectedEdge(a, b, data);
+    public void setUndirectedEdgeData(KV aKey, KV bKey, DE data) {
+        addUndirectedEdge(aKey, bKey, data);
     }
-
 
     public static <KV> String edgeKey(KV a, KV b) {
         String x = String.valueOf(a);
         String y = String.valueOf(b);
         return (x.compareTo(y) <= 0) ? x + "-" + y : y + "-" + x;
     }
-
-    public static <KV, DV, DE> String edgeKey(Graph<KV, DV, DE>.Vertex a, Graph<KV, DV, DE>.Vertex b) {
-        return edgeKey(a.key(), b.key());
-    }
 }
-
-    //vertex a edge uvnitr grafu

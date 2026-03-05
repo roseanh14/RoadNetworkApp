@@ -14,8 +14,8 @@ public class GraphPanel extends JPanel {
 
     private final Graph<String, Point, Double> graph;
 
-    private List<Graph<String, Point, Double>.Vertex> highlightedPath = new ArrayList<>();
-    private Graph<String, Point, Double>.Vertex selectedVertex = null;
+    private List<String> highlightedPath = new ArrayList<>();
+    private String selectedVertexKey = null;
 
     private Set<String> blockedEdges = new HashSet<>();
     private String pendingAddVertexKey = null;
@@ -46,16 +46,17 @@ public class GraphPanel extends JPanel {
                         return;
                     }
 
-                    graph.addVertex(key, new Point(gx, gy));
-                    selectedVertex = graph.getVertex(key);
+                    graph.putVertex(key, new Point(gx, gy));
+                    selectedVertexKey = key;
+
                     if (onVertexAdded != null) onVertexAdded.run();
                     repaint();
                     return;
                 }
 
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    var clicked = findVertexAt(gx, gy);
-                    setSelectedVertex(clicked);
+                    String clickedKey = findVertexKeyAt(gx, gy);
+                    setSelectedVertexKey(clickedKey);
                 }
             }
         });
@@ -65,18 +66,18 @@ public class GraphPanel extends JPanel {
         this.onVertexAdded = callback;
     }
 
-    public void highlightPath(List<Graph<String, Point, Double>.Vertex> path) {
-        this.highlightedPath = (path == null) ? new ArrayList<>() : new ArrayList<>(path);
+    public void highlightPath(List<String> pathKeys) {
+        this.highlightedPath = (pathKeys == null) ? new ArrayList<>() : new ArrayList<>(pathKeys);
         repaint();
     }
 
-    public void setSelectedVertex(Graph<String, Point, Double>.Vertex v) {
-        this.selectedVertex = v;
+    public void setSelectedVertexKey(String key) {
+        this.selectedVertexKey = key;
         repaint();
     }
 
-    public Graph<String, Point, Double>.Vertex getSelectedVertex() {
-        return selectedVertex;
+    public String getSelectedVertexKey() {
+        return selectedVertexKey;
     }
 
     public void setBlockedEdges(Set<String> keys) {
@@ -117,13 +118,13 @@ public class GraphPanel extends JPanel {
         Set<String> drawn = new HashSet<>();
 
         for (var e : graph.edges()) {
-            var from = e.from();
-            var to   = e.to();
+            String fromKey = e.fromKey();
+            String toKey   = e.toKey();
 
-            String key = Graph.edgeKey(from, to);
+            String key = Graph.edgeKey(fromKey, toKey);
             if (!drawn.add(key)) continue;
 
-            boolean onPath    = isOnPath(from, to);
+            boolean onPath    = isOnPath(fromKey, toKey);
             boolean isBlocked = blockedEdges.contains(key);
 
             if (isBlocked) g2.setColor(Color.RED);
@@ -133,8 +134,9 @@ public class GraphPanel extends JPanel {
             float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
-            Point p1 = from.data();
-            Point p2 = to.data();
+            Point p1 = graph.getVertexData(fromKey);
+            Point p2 = graph.getVertexData(toKey);
+            if (p1 == null || p2 == null) continue;
 
             g2.drawLine(p1.x, p1.y, p2.x, p2.y);
 
@@ -154,8 +156,10 @@ public class GraphPanel extends JPanel {
         FontMetrics fm = g2.getFontMetrics();
 
         for (var v : graph.vertices()) {
-            boolean onPath     = highlightedPath.contains(v);
-            boolean isSelected = (selectedVertex != null && selectedVertex.equals(v));
+            String key = v.key();
+
+            boolean onPath     = highlightedPath.contains(key);
+            boolean isSelected = (selectedVertexKey != null && selectedVertexKey.equals(key));
 
             Point p = v.data();
             int cx = p.x;
@@ -176,28 +180,27 @@ public class GraphPanel extends JPanel {
                 g2.drawOval(x - 3, y - 3, d + 6, d + 6);
             }
 
-            String label = String.valueOf(v.key());
+            String label = String.valueOf(key);
             g2.setColor(Color.WHITE);
             g2.drawString(label, cx - fm.stringWidth(label) / 2, cy + 5);
         }
     }
 
-    private boolean isOnPath(Graph<String, Point, Double>.Vertex from,
-                             Graph<String, Point, Double>.Vertex to) {
+    private boolean isOnPath(String fromKey, String toKey) {
         for (int i = 0; i < highlightedPath.size() - 1; i++) {
-            var a = highlightedPath.get(i);
-            var b = highlightedPath.get(i + 1);
-            if ((a.equals(from) && b.equals(to)) || (a.equals(to) && b.equals(from))) return true;
+            String a = highlightedPath.get(i);
+            String b = highlightedPath.get(i + 1);
+            if ((a.equals(fromKey) && b.equals(toKey)) || (a.equals(toKey) && b.equals(fromKey))) return true;
         }
         return false;
     }
 
-    private Graph<String, Point, Double>.Vertex findVertexAt(int x, int y) {
+    private String findVertexKeyAt(int x, int y) {
         for (var v : graph.vertices()) {
             Point p = v.data();
             int dx = x - p.x;
             int dy = y - p.y;
-            if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return v;
+            if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return v.key();
         }
         return null;
     }
