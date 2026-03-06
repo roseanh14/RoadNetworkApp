@@ -25,6 +25,7 @@ public class GraphFileIO {
                 if (p.length < 1) continue;
 
                 String type = p[0].trim();
+
                 if (type.equalsIgnoreCase("V")) {
                     if (p.length < 4) continue;
 
@@ -56,7 +57,7 @@ public class GraphFileIO {
                         continue;
                     }
 
-                    if (graph.getVertex(from) == null || graph.getVertex(to) == null) continue;
+                    if (!graph.containsVertex(from) || !graph.containsVertex(to)) continue;
 
                     graph.setUndirectedEdgeData(from, to, w);
                 }

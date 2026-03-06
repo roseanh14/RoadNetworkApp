@@ -39,20 +39,20 @@ public class ControlActions {
 
     public void fill(JComboBox<String> start, JComboBox<String> end) {
         this.startBox = start;
-        this.endBox   = end;
+        this.endBox = end;
 
         start.removeAllItems();
         end.removeAllItems();
 
-        for (var v : g.vertices()) {
-            start.addItem(v.key());
-            end.addItem(v.key());
+        for (String key : g.keys()) {
+            start.addItem(key);
+            end.addItem(key);
         }
     }
 
     public void routes(String startId, String endId) {
         String start = getExistingKey(startId, "Start node not found.");
-        String end   = getExistingKey(endId,   "End node not found.");
+        String end = getExistingKey(endId, "End node not found.");
         if (start == null || end == null) return;
 
         List<String> base = Dijkstra.shortestPath(g, start, end);
@@ -83,7 +83,9 @@ public class ControlActions {
         allPaths.add(base);
 
         List<Alt> altsForVector = topAlternativesFromBase(start, end, base, blockedEdges);
-        for (Alt alt : altsForVector) allPaths.add(alt.path());
+        for (Alt alt : altsForVector) {
+            allPaths.add(alt.path());
+        }
 
         var sv = SuccessorVector.buildAll(allPaths);
         sb.append(SuccessorVector.toTableStringAll(sv)).append("\n");
@@ -97,8 +99,11 @@ public class ControlActions {
         sb.append("\n=== ALTERNATIVE ROUTES (TOP ").append(ALT_LIMIT).append(") ===\n\n");
 
         List<Alt> alts = topAlternativesFromBase(start, end, base, blockedEdges);
-        if (alts.isEmpty()) sb.append("No alternative routes found.\n");
-        else appendAlternatives(sb, alts, currentDist);
+        if (alts.isEmpty()) {
+            sb.append("No alternative routes found.\n");
+        } else {
+            appendAlternatives(sb, alts, currentDist);
+        }
 
         rp.show(sb.toString());
     }
@@ -141,7 +146,7 @@ public class ControlActions {
             Set<String> twoBlocks = new HashSet<>(globalBlocks);
             twoBlocks.add(extraBlock);
 
-            var altPath = shortestPathWithBlocks(startKey, endKey, twoBlocks);
+            List<String> altPath = shortestPathWithBlocks(startKey, endKey, twoBlocks);
             if (altPath.isEmpty()) continue;
 
             String k = pathKey(altPath);
@@ -159,7 +164,7 @@ public class ControlActions {
         String id = ask("ID of new node:");
         if (id == null) return;
 
-        if (g.getVertex(id) != null) {
+        if (g.containsVertex(id)) {
             rp.show("Node '" + id + "' already exists.");
             return;
         }
@@ -176,7 +181,7 @@ public class ControlActions {
         String id = ask("Search for node ID:");
         if (id == null) return;
 
-        if (g.getVertex(id) == null) {
+        if (!g.containsVertex(id)) {
             gp.setSelectedVertexKey(null);
             rp.show("Node not found: " + id);
             return;
@@ -215,7 +220,7 @@ public class ControlActions {
         if (pair == null) return;
 
         String from = pair.from();
-        String to   = pair.to();
+        String to = pair.to();
 
         try {
             switch (op) {
@@ -335,11 +340,11 @@ public class ControlActions {
 
     private KeyPair askEdgeVertices(String qFrom, String qTo) {
         String fromId = ask(qFrom);
-        String toId   = ask(qTo);
+        String toId = ask(qTo);
         if (fromId == null || toId == null) return null;
 
         String from = getExistingKey(fromId, "Node not found: " + fromId);
-        String to   = getExistingKey(toId,   "Node not found: " + toId);
+        String to = getExistingKey(toId, "Node not found: " + toId);
         if (from == null || to == null) return null;
 
         return new KeyPair(from, to);
@@ -347,7 +352,7 @@ public class ControlActions {
 
     private String getExistingKey(String id, String errorMsg) {
         if (id == null) return null;
-        if (g.getVertex(id) == null) {
+        if (!g.containsVertex(id)) {
             rp.show(errorMsg);
             return null;
         }

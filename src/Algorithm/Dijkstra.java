@@ -24,15 +24,15 @@ public class Dijkstra {
                           KV endKey,
                           EdgeBlocker<KV> blocker) {
 
-        if (graph.getVertex(startKey) == null || graph.getVertex(endKey) == null) {
+        if (!graph.containsVertex(startKey) || !graph.containsVertex(endKey)) {
             return new ArrayList<>();
         }
 
         Map<KV, Double> dist = new HashMap<>();
         Map<KV, KV> prev = new HashMap<>();
 
-        for (var v : graph.vertices()) {
-            dist.put(v.key(), Double.MAX_VALUE);
+        for (KV key : graph.keys()) {
+            dist.put(key, Double.MAX_VALUE);
         }
         dist.put(startKey, 0.0);
 
@@ -43,21 +43,25 @@ public class Dijkstra {
         Set<KV> visited = new HashSet<>();
 
         while (!pq.isEmpty()) {
-            var item = pq.poll();
-            var curKey = item.key();
+            PQItem<KV> item = pq.poll();
+            KV curKey = item.key();
 
             if (!Objects.equals(item.dist(), dist.getOrDefault(curKey, Double.MAX_VALUE))) continue;
             if (!visited.add(curKey)) continue;
 
             if (Objects.equals(curKey, endKey)) break;
 
-            for (var e : graph.edgesFrom(curKey)) {
-                KV toKey = e.toKey();
+            Map<KV, DE> neighbors = graph.neighbors(curKey);
+
+            for (Map.Entry<KV, DE> entry : neighbors.entrySet()) {
+                KV toKey = entry.getKey();
+                DE edgeData = entry.getValue();
 
                 if (blocker.blocked(curKey, toKey)) continue;
                 if (visited.contains(toKey)) continue;
+                if (edgeData == null) continue;
 
-                double w = e.data().doubleValue();
+                double w = edgeData.doubleValue();
                 double nd = dist.get(curKey) + w;
 
                 if (nd < dist.getOrDefault(toKey, Double.MAX_VALUE)) {
@@ -75,29 +79,32 @@ public class Dijkstra {
             path.add(step);
             step = prev.get(step);
         }
+
         Collections.reverse(path);
 
-        if (path.isEmpty() || !Objects.equals(path.get(0), startKey)) return new ArrayList<>();
+        if (path.isEmpty() || !Objects.equals(path.get(0), startKey)) {
+            return new ArrayList<>();
+        }
+
         return path;
     }
 
     public static <KV, DV, DE extends Number>
     double pathDistance(Graph<KV, DV, DE> graph, List<KV> path) {
-        double total = 0;
+        double total = 0.0;
 
         for (int i = 0; i < path.size() - 1; i++) {
             DE w = findEdgeWeight(graph, path.get(i), path.get(i + 1));
-            if (w != null) total += w.doubleValue();
+            if (w != null) {
+                total += w.doubleValue();
+            }
         }
+
         return total;
     }
 
     public static <KV, DV, DE>
     DE findEdgeWeight(Graph<KV, DV, DE> graph, KV fromKey, KV toKey) {
-        for (var e : graph.edgesFrom(fromKey)) {
-            if (Objects.equals(e.toKey(), toKey)) return e.data();
-        }
-        return null;
+        return graph.getEdgeData(fromKey, toKey);
     }
-
 }

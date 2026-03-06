@@ -41,7 +41,7 @@ public class GraphPanel extends JPanel {
                     String key = pendingAddVertexKey;
                     pendingAddVertexKey = null;
 
-                    if (graph.getVertex(key) != null) {
+                    if (graph.containsVertex(key)) {
                         repaint();
                         return;
                     }
@@ -115,16 +115,19 @@ public class GraphPanel extends JPanel {
     }
 
     private void drawEdges(Graphics2D g2) {
-        Set<String> drawn = new HashSet<>();
+        Map<String, Double> edges = graph.allEdges();
 
-        for (var e : graph.edges()) {
-            String fromKey = e.fromKey();
-            String toKey   = e.toKey();
+        for (var entry : edges.entrySet()) {
+            String key = entry.getKey();
+            Double weight = entry.getValue();
 
-            String key = Graph.edgeKey(fromKey, toKey);
-            if (!drawn.add(key)) continue;
+            String[] parts = key.split("-", 2);
+            if (parts.length != 2) continue;
 
-            boolean onPath    = isOnPath(fromKey, toKey);
+            String fromKey = parts[0];
+            String toKey = parts[1];
+
+            boolean onPath = isOnPath(fromKey, toKey);
             boolean isBlocked = blockedEdges.contains(key);
 
             if (isBlocked) g2.setColor(Color.RED);
@@ -145,7 +148,7 @@ public class GraphPanel extends JPanel {
 
             g2.setFont(new Font("Arial", Font.PLAIN, 10));
             g2.setColor(Color.DARK_GRAY);
-            g2.drawString(String.valueOf((int) Math.round(e.data())), midX + 2, midY - 2);
+            g2.drawString(String.valueOf((int) Math.round(weight)), midX + 2, midY - 2);
         }
     }
 
@@ -155,17 +158,18 @@ public class GraphPanel extends JPanel {
         g2.setFont(new Font("Arial", Font.BOLD, 12));
         FontMetrics fm = g2.getFontMetrics();
 
-        for (var v : graph.vertices()) {
-            String key = v.key();
-
-            boolean onPath     = highlightedPath.contains(key);
+        for (String key : graph.keys()) {
+            boolean onPath = highlightedPath.contains(key);
             boolean isSelected = (selectedVertexKey != null && selectedVertexKey.equals(key));
 
-            Point p = v.data();
+            Point p = graph.getVertexData(key);
+            if (p == null) continue;
+
             int cx = p.x;
             int cy = p.y;
 
-            int x = cx - NODE_RADIUS, y = cy - NODE_RADIUS;
+            int x = cx - NODE_RADIUS;
+            int y = cy - NODE_RADIUS;
 
             g2.setColor(onPath ? new Color(46, 204, 113) : new Color(74, 144, 217));
             g2.fillOval(x, y, d, d);
@@ -180,9 +184,8 @@ public class GraphPanel extends JPanel {
                 g2.drawOval(x - 3, y - 3, d + 6, d + 6);
             }
 
-            String label = String.valueOf(key);
             g2.setColor(Color.WHITE);
-            g2.drawString(label, cx - fm.stringWidth(label) / 2, cy + 5);
+            g2.drawString(key, cx - fm.stringWidth(key) / 2, cy + 5);
         }
     }
 
@@ -190,17 +193,26 @@ public class GraphPanel extends JPanel {
         for (int i = 0; i < highlightedPath.size() - 1; i++) {
             String a = highlightedPath.get(i);
             String b = highlightedPath.get(i + 1);
-            if ((a.equals(fromKey) && b.equals(toKey)) || (a.equals(toKey) && b.equals(fromKey))) return true;
+
+            if ((a.equals(fromKey) && b.equals(toKey)) ||
+                    (a.equals(toKey) && b.equals(fromKey))) {
+                return true;
+            }
         }
         return false;
     }
 
     private String findVertexKeyAt(int x, int y) {
-        for (var v : graph.vertices()) {
-            Point p = v.data();
+        for (String key : graph.keys()) {
+            Point p = graph.getVertexData(key);
+            if (p == null) continue;
+
             int dx = x - p.x;
             int dy = y - p.y;
-            if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return v.key();
+
+            if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) {
+                return key;
+            }
         }
         return null;
     }
