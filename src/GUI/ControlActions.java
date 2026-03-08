@@ -236,7 +236,7 @@ public class ControlActions {
                 }
                 case EDIT_WEIGHT -> {
                     double w = Double.parseDouble(req("New weight (minutes):"));
-                    g.setUndirectedEdgeData(from, to, w);
+                    g.setUndirectedEdgeWeight(from, to, w);
                     refreshGraphUI(false);
                 }
             }

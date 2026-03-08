@@ -59,7 +59,7 @@ public class GraphFileIO {
 
                     if (!graph.containsVertex(from) || !graph.containsVertex(to)) continue;
 
-                    graph.setUndirectedEdgeData(from, to, w);
+                    graph.setUndirectedEdgeWeight(from, to, w);
                 }
             }
         }

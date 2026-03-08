@@ -57,9 +57,11 @@ public class Dijkstra {
                 KV toKey = entry.getKey();
                 DE edgeData = entry.getValue();
 
+                // Skip inactive edges
+                if (edgeData == null) continue;
+
                 if (blocker.blocked(curKey, toKey)) continue;
                 if (visited.contains(toKey)) continue;
-                if (edgeData == null) continue;
 
                 double w = edgeData.doubleValue();
                 double nd = dist.get(curKey) + w;
@@ -105,6 +107,6 @@ public class Dijkstra {
 
     public static <KV, DV, DE>
     DE findEdgeWeight(Graph<KV, DV, DE> graph, KV fromKey, KV toKey) {
-        return graph.getEdgeData(fromKey, toKey);
+        return graph.getEdgeWeight(fromKey, toKey);
     }
 }

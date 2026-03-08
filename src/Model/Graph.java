@@ -13,24 +13,24 @@ public class Graph<KV, DV, DE> implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private final KV key;
-        private DV data;
+        private DV location;
         private final List<Edge> edges = new ArrayList<>();
 
-        private Vertex(KV key, DV data) {
+        private Vertex(KV key, DV location) {
             this.key = key;
-            this.data = data;
+            this.location = location;
         }
 
         private KV getKey() {
             return key;
         }
 
-        private DV getData() {
-            return data;
+        private DV getLocation() {
+            return location;
         }
 
-        private void setData(DV data) {
-            this.data = data;
+        private void setLocation(DV location) {
+            this.location = location;
         }
 
         @Override
@@ -57,12 +57,14 @@ public class Graph<KV, DV, DE> implements Serializable {
 
         private final Vertex from;
         private final Vertex to;
-        private DE data;
+        private DE weight;
+        private boolean active;
 
-        private Edge(Vertex from, Vertex to, DE data) {
+        private Edge(Vertex from, Vertex to, DE weight) {
             this.from = from;
             this.to = to;
-            this.data = data;
+            this.weight = weight;
+            this.active = true;
         }
 
         private Vertex getFrom() {
@@ -73,12 +75,20 @@ public class Graph<KV, DV, DE> implements Serializable {
             return to;
         }
 
-        private DE getData() {
-            return data;
+        private DE getWeight() {
+            return weight;
         }
 
-        private void setData(DE data) {
-            this.data = data;
+        private void setWeight(DE weight) {
+            this.weight = weight;
+        }
+
+        private boolean isActive() {
+            return active;
+        }
+
+        private void changeActive(boolean active) {
+            this.active = active;
         }
     }
 
@@ -96,19 +106,19 @@ public class Graph<KV, DV, DE> implements Serializable {
         return vertices.containsKey(key);
     }
 
-    public DV getVertexData(KV key) {
+    public DV getVertexLocation(KV key) {
         Vertex v = vertices.get(key);
-        return (v == null) ? null : v.getData();
+        return (v == null) ? null : v.getLocation();
     }
 
-    public void putVertex(KV key, DV data) {
+    public void putVertex(KV key, DV location) {
         if (key == null) return;
 
         Vertex v = vertices.get(key);
         if (v == null) {
-            vertices.put(key, new Vertex(key, data));
+            vertices.put(key, new Vertex(key, location));
         } else {
-            v.setData(data);
+            v.setLocation(location);
         }
     }
 
@@ -132,20 +142,22 @@ public class Graph<KV, DV, DE> implements Serializable {
 
         Map<KV, DE> out = new LinkedHashMap<>();
         for (Edge e : from.edges) {
-            out.put(e.getTo().getKey(), e.getData());
+            if (e.isActive()) {
+                out.put(e.getTo().getKey(), e.getWeight());
+            }
         }
         return Collections.unmodifiableMap(out);
     }
 
-    public DE getEdgeData(KV fromKey, KV toKey) {
+    public DE getEdgeWeight(KV fromKey, KV toKey) {
         Vertex from = vertices.get(fromKey);
         Vertex to = vertices.get(toKey);
 
         if (from == null || to == null) return null;
 
         for (Edge e : from.edges) {
-            if (e.getTo().equals(to)) {
-                return e.getData();
+            if (e.getTo().equals(to) && e.isActive()) {
+                return e.getWeight();
             }
         }
         return null;
@@ -157,14 +169,14 @@ public class Graph<KV, DV, DE> implements Serializable {
         for (Vertex v : vertices.values()) {
             for (Edge e : v.edges) {
                 String key = edgeKey(e.getFrom().getKey(), e.getTo().getKey());
-                out.put(key, e.getData());
+                out.put(key, e.getWeight());
             }
         }
 
         return Collections.unmodifiableMap(out);
     }
 
-    public void addDirectedEdge(KV fromKey, KV toKey, DE data) {
+    public void addDirectedEdge(KV fromKey, KV toKey, DE weight) {
         if (fromKey == null || toKey == null) return;
 
         Vertex from = vertices.get(fromKey);
@@ -174,17 +186,18 @@ public class Graph<KV, DV, DE> implements Serializable {
 
         for (Edge e : from.edges) {
             if (e.getTo().equals(to)) {
-                e.setData(data);
+                e.setWeight(weight);
+                e.changeActive(true);
                 return;
             }
         }
 
-        from.edges.add(new Edge(from, to, data));
+        from.edges.add(new Edge(from, to, weight));
     }
 
-    public void addUndirectedEdge(KV aKey, KV bKey, DE data) {
-        addDirectedEdge(aKey, bKey, data);
-        addDirectedEdge(bKey, aKey, data);
+    public void addUndirectedEdge(KV aKey, KV bKey, DE weight) {
+        addDirectedEdge(aKey, bKey, weight);
+        addDirectedEdge(bKey, aKey, weight);
     }
 
     public void removeDirectedEdge(KV fromKey, KV toKey) {
@@ -203,8 +216,28 @@ public class Graph<KV, DV, DE> implements Serializable {
         removeDirectedEdge(bKey, aKey);
     }
 
-    public void setUndirectedEdgeData(KV aKey, KV bKey, DE data) {
-        addUndirectedEdge(aKey, bKey, data);
+    public void setUndirectedEdgeWeight(KV aKey, KV bKey, DE weight) {
+        addUndirectedEdge(aKey, bKey, weight);
+    }
+
+    public void changeDirectedEdgeActive(KV fromKey, KV toKey, boolean active) {
+        Vertex from = vertices.get(fromKey);
+        Vertex to = vertices.get(toKey);
+
+        if (from == null || to == null) return;
+
+        for (Edge e : from.edges) {
+            if (e.getTo().equals(to)) {
+                e.changeActive(active);
+                return;
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public void changeUndirectedEdgeActive(KV aKey, KV bKey, boolean active) {
+        changeDirectedEdgeActive(aKey, bKey, active);
+        changeDirectedEdgeActive(bKey, aKey, active);
     }
 
     public static <KV> String edgeKey(KV a, KV b) {

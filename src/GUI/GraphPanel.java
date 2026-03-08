@@ -137,8 +137,8 @@ public class GraphPanel extends JPanel {
             float stroke = isBlocked ? 4f : (onPath ? 3f : 1f);
             g2.setStroke(new BasicStroke(stroke));
 
-            Point p1 = graph.getVertexData(fromKey);
-            Point p2 = graph.getVertexData(toKey);
+            Point p1 = graph.getVertexLocation(fromKey);
+            Point p2 = graph.getVertexLocation(toKey);
             if (p1 == null || p2 == null) continue;
 
             g2.drawLine(p1.x, p1.y, p2.x, p2.y);
@@ -162,7 +162,7 @@ public class GraphPanel extends JPanel {
             boolean onPath = highlightedPath.contains(key);
             boolean isSelected = (selectedVertexKey != null && selectedVertexKey.equals(key));
 
-            Point p = graph.getVertexData(key);
+            Point p = graph.getVertexLocation(key);
             if (p == null) continue;
 
             int cx = p.x;
@@ -204,7 +204,7 @@ public class GraphPanel extends JPanel {
 
     private String findVertexKeyAt(int x, int y) {
         for (String key : graph.keys()) {
-            Point p = graph.getVertexData(key);
+            Point p = graph.getVertexLocation(key);
             if (p == null) continue;
 
             int dx = x - p.x;
