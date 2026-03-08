@@ -4,6 +4,7 @@ import Model.Graph;
 
 import java.util.*;
 
+//pouzit v algoritmu vynechani hran ktere maji isActive() -> false.
 public class Dijkstra {
 
     @FunctionalInterface

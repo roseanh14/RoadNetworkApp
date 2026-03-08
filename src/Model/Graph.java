@@ -8,6 +8,10 @@ public class Graph<KV, DV, DE> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+
+    //zde data muzeme prejmenovat na geoLocation protoze se do toho dava instance tridy Point, ktera obsahuje (x,y) souradnice
+    //zdejne tak i getter getData na getGeoLocation atd. Upravit pak nazev vsechn metod ve kterych se objevuje slovo data, proste nepojmenovavat
+    //tak obecnym slovem, kod je kvuli tomu spatne citelny
     private class Vertex implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
@@ -51,6 +55,9 @@ public class Graph<KV, DV, DE> implements Serializable {
         }
     }
 
+    //data muzeme prejmenovat na weight, protoze se do toho dava pouze hodnota vah, s nazvem data clovek pri prvnim pohldedu do kodu nevi k cemu to je
+    //pridat privatni promenou (boolean) active a k ni dodelat getter isActive() pro jeji navrat a setter changeActive() pro jeji nastaveni.
+    //zde by mozna do kontruktoru nemusely jit cele objekty Vertex, ale pouze klice tech from a to.
     private class Edge implements Serializable {
         @Serial
         private static final long serialVersionUID = 1L;
