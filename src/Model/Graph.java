@@ -24,7 +24,7 @@ public class Graph<KV, DV, DE> implements Serializable {
         private KV getKey() {
             return key;
         }
-
+        
         private DV getLocation() {
             return location;
         }
