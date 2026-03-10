@@ -4,30 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="87af07be-76c9-42f6-b478-d7e2ceebfcfa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/RoadNetworkApp.iml" beforeDir="false" afterPath="$PROJECT_DIR$/RoadNetworkApp.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Model/Graph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Model/Graph.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Algorithm/Dijkstra$PQItem.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Algorithm/Dijkstra$PQItem.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Algorithm/Dijkstra.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Algorithm/Dijkstra.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Algorithm/SuccessorVector.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Algorithm/SuccessorVector.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/ControlActions$Alt.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/ControlActions$Alt.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/ControlActions$EdgeOp.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/ControlActions$EdgeOp.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/ControlActions$KeyPair.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/ControlActions$KeyPair.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/ControlActions.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/ControlActions.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/ControlPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/ControlPanel.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/GraphPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/GraphPanel$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/GUI/GraphPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/GUI/GraphPanel.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Main/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Main/Main.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Model/Graph$Edge.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Model/Graph$Edge.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Model/Graph$Vertex.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Model/Graph$Vertex.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/Model/Graph.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/Model/Graph.class" afterDir="false" />
-    </list>
+    <list default="true" id="87af07be-76c9-42f6-b478-d7e2ceebfcfa" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -121,6 +98,7 @@
       <workItem from="1772801188750" duration="1809000" />
       <workItem from="1772826367293" duration="5506000" />
       <workItem from="1772966562548" duration="7501000" />
+      <workItem from="1773138702868" duration="712000" />
     </task>
     <servers />
   </component>
